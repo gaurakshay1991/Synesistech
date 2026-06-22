@@ -7,8 +7,7 @@
     "install:all": "npm install && npm --prefix server install && npm --prefix client install",
     "dev": "concurrently \"npm --prefix server run dev\" \"npm --prefix client run dev\"",
     "start": "npm --prefix server start",
-    "build": "npm --prefix client run build",
-    "smoke": "bash scripts/smoke-test.sh"
+    "build": "npm --prefix client run build"
   },
   "devDependencies": {
     "concurrently": "^9.1.2"
