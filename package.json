@@ -1,0 +1,16 @@
+{
+  "name": "synesis-private-investor-platform",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "install:all": "npm install && npm --prefix server install && npm --prefix client install",
+    "dev": "concurrently \"npm --prefix server run dev\" \"npm --prefix client run dev\"",
+    "start": "npm --prefix server start",
+    "build": "npm --prefix client run build",
+    "smoke": "bash scripts/smoke-test.sh"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2"
+  }
+}
