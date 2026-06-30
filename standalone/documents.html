@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Synesis Documents</title>
+  <style>
+    :root{font-family:Inter,ui-sans-serif,system-ui,Arial;background:#0b1020;color:#e5e7eb}*{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at top left,#1e3a8a,#020617 38%,#020617);min-height:100vh}.layout{display:grid;grid-template-columns:280px 1fr;min-height:100vh}.side{background:#020617;border-right:1px solid #1f2937;padding:26px;display:flex;flex-direction:column}.brand{font-size:24px;font-weight:900;letter-spacing:.08em;text-transform:uppercase}.muted{color:#94a3b8;line-height:1.55}.nav{border:1px solid transparent;background:transparent;color:#cbd5e1;text-align:left;border-radius:14px;padding:12px 14px;margin-top:8px;font-weight:800}.nav.active,.nav:hover{background:#111827;border-color:#334155;color:#fff}.main{max-width:1280px;width:100%;margin:0 auto;padding:30px}.top{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin-bottom:20px}.pill{border:1px solid #334155;border-radius:999px;padding:8px 12px;color:#cbd5e1;background:#111827;white-space:nowrap}.card{background:rgba(17,24,39,.92);border:1px solid rgba(148,163,184,.22);border-radius:22px;box-shadow:0 24px 80px rgba(0,0,0,.35)}h1{font-size:34px;margin:4px 0}h2{font-size:34px;line-height:1.08;margin:8px 0 12px}h3{margin:0 0 10px}.hero{display:grid;grid-template-columns:1fr auto;gap:24px;align-items:center;padding:28px;background:linear-gradient(135deg,rgba(30,64,175,.34),rgba(15,23,42,.95) 58%,rgba(2,6,23,.98))}.eyebrow{margin:0;color:#93c5fd;text-transform:uppercase;letter-spacing:.14em;font-size:12px;font-weight:900}.hero-actions{display:flex;flex-direction:column;min-width:210px}button,.upload{border:0;border-radius:14px;background:#e5e7eb;color:#020617;font-weight:900;padding:12px 16px;cursor:pointer;margin-top:12px;display:inline-flex;align-items:center;justify-content:center}.upload input{display:none}.secondary{background:#1f2937;color:#cbd5e1;border:1px solid #334155}.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin:18px 0}.stat{padding:18px}.stat span{color:#94a3b8;font-size:12px;text-transform:uppercase;letter-spacing:.08em}.stat strong{display:block;font-size:34px;margin-top:8px}.controls{padding:18px;margin-bottom:18px}.control-grid,.filter-grid{display:grid;gap:12px}.control-grid{grid-template-columns:1.2fr 1fr .8fr}.filter-grid{grid-template-columns:1.4fr .8fr .8fr;margin-top:12px}label{display:grid;gap:8px;color:#cbd5e1}input,select{width:100%;border:1px solid #334155;background:#020617;color:#e5e7eb;border-radius:14px;padding:13px 14px;font:inherit}.docs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}.doc{padding:20px;display:grid;gap:12px}.doc-top{display:flex;align-items:center;justify-content:space-between;gap:12px}.type{background:#0f172a;border:1px solid #334155;border-radius:999px;color:#bfdbfe;font-size:12px;font-weight:900;padding:7px 10px}.risk{border-radius:999px;font-size:12px;font-weight:900;padding:7px 10px}.risk-high{background:#7f1d1d;color:#fecaca}.risk-medium{background:#78350f;color:#fde68a}.risk-pending{background:#312e81;color:#c4b5fd}.meta{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}.meta span{background:#020617;border:1px solid #1f2937;border-radius:12px;color:#cbd5e1;font-size:12px;padding:9px}.tags{display:flex;gap:8px;flex-wrap:wrap}.tags span{background:#1e293b;color:#cbd5e1;border-radius:999px;font-size:12px;padding:7px 9px}.row{display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center}.row button{margin:0}.empty{grid-column:1/-1;padding:28px}@media(max-width:980px){.layout{grid-template-columns:1fr}.side{border-right:0;border-bottom:1px solid #1f2937}.hero{grid-template-columns:1fr}.stats{grid-template-columns:repeat(2,1fr)}.control-grid,.filter-grid,.docs{grid-template-columns:1fr}}@media(max-width:640px){.main{padding:18px}.top{display:block}.stats{grid-template-columns:1fr}h1,h2{font-size:26px}}
+  </style>
+</head>
+<body>
+  <div class="layout">
+    <aside class="side">
+      <div class="brand">Synesis</div>
+      <p class="muted">No-build local fallback. This page runs without Vite, React, esbuild or concurrently.</p>
+      <button class="nav active">Documents</button>
+      <button class="nav" onclick="window.open('http://localhost:8080/api/health','_blank')">Backend Health</button>
+      <div style="flex:1"></div>
+      <p class="muted" style="font-size:12px">Private investor mode<br/>Local document vault</p>
+    </aside>
+    <main class="main">
+      <div class="top">
+        <div><h1>Documents</h1><p class="muted">Private legal workspace for documents, review status and investor-ready outputs.</p></div>
+        <span class="pill">Private • No payments • Local demo</span>
+      </div>
+
+      <section class="hero card">
+        <div>
+          <p class="eyebrow">Synesis Document Intelligence</p>
+          <h2>Private document vault for legal review, investor demos and controlled sign-off.</h2>
+          <p class="muted">Track contracts, policies, opinions and regulatory notes through AI draft, source check, lawyer review and final approval.</p>
+        </div>
+        <div class="hero-actions">
+          <label class="upload">Upload document<input id="file" type="file" /></label>
+          <button id="manual">Create manual record</button>
+        </div>
+      </section>
+
+      <section class="stats">
+        <div class="card stat"><span>Total documents</span><strong id="sTotal">0</strong></div>
+        <div class="card stat"><span>High-risk files</span><strong id="sHigh">0</strong></div>
+        <div class="card stat"><span>In lawyer review</span><strong id="sReview">0</strong></div>
+        <div class="card stat"><span>Final approved</span><strong id="sApproved">0</strong></div>
+      </section>
+
+      <section class="card controls">
+        <div class="control-grid">
+          <label>Document title<input id="title" placeholder="e.g. Referral Agreement marked draft" /></label>
+          <label>Matter / Workstream<input id="matter" placeholder="e.g. Investment Banking" /></label>
+          <label>Category<select id="newCategory"><option>Agreement</option><option>Policy / Framework</option><option>Legal Opinion</option><option>Vendor Contract</option><option>Term Sheet</option><option>Regulatory Note</option></select></label>
+        </div>
+        <div class="filter-grid">
+          <input id="search" placeholder="Search documents, matters, tags or risks..." />
+          <select id="status"><option>All</option><option>AI Draft</option><option>Source Checked</option><option>Lawyer Review</option><option>Final Approved</option></select>
+          <select id="category"><option>All</option></select>
+        </div>
+      </section>
+
+      <section class="docs" id="docs"></section>
+    </main>
+  </div>
+
+<script>
+const seed=[{id:'doc-001',title:'Real Estate Financing Framework',category:'Policy / Framework',matter:'Bank Legal Review',status:'Lawyer Review',risk:'High',owner:'Akshay Gaur',updatedAt:'2026-06-30',size:'428 KB',type:'DOCX',summary:'Review of security, SPV liability, group exposure, title diligence and bank-protective controls.',tags:['RBI','Security','SPV','Risk']},{id:'doc-002',title:'Travel Remittance Supplementary Agreement',category:'Agreement',matter:'Outward Remittance',status:'Final Approved',risk:'Medium',owner:'Legal Team',updatedAt:'2026-06-24',size:'212 KB',type:'DOCX',summary:'Product-specific addendum covering travel remittances, partner responsibilities, LRS reporting and communication channels.',tags:['FEMA','LRS','AD Bank','Partner']},{id:'doc-003',title:'Vendor Storage Facility Agreement',category:'Vendor Contract',matter:'Secure Storage / Digitisation',status:'AI Draft',risk:'High',owner:'Operations / Legal',updatedAt:'2026-06-22',size:'318 KB',type:'PDF',summary:'Document custody, insurance, confidentiality, information security, regulatory inspection and liability controls.',tags:['Vendor','Insurance','Data','Custody']},{id:'doc-004',title:'Dvara Referral Term Sheet',category:'Term Sheet',matter:'Referral / Investment Banking',status:'Source Checked',risk:'Medium',owner:'Investment Banking / Legal',updatedAt:'2026-06-19',size:'144 KB',type:'DOCX',summary:'Referral fee structure, seat/venue/jurisdiction alignment, termination triggers and sanctions protections.',tags:['Referral','AIF','Arbitration','Sanctions']}];
+let docs=JSON.parse(localStorage.getItem('synesis_standalone_docs')||'null')||seed;
+const $=id=>document.getElementById(id);
+function save(){localStorage.setItem('synesis_standalone_docs',JSON.stringify(docs));render()}
+function add(file){const title=$('title').value.trim()||(file&&file.name.replace(/\.[^/.]+$/,''))||'Untitled Legal Document';const size=file?Math.max(1,Math.round(file.size/1024))+' KB':'Manual Entry';const type=file?file.name.split('.').pop().toUpperCase():'NOTE';docs.unshift({id:crypto.randomUUID(),title,category:$('newCategory').value,matter:$('matter').value.trim()||'Unassigned Matter',status:'AI Draft',risk:'Pending',owner:'Local User',updatedAt:new Date().toISOString().slice(0,10),size,type,summary:'Newly added to Synesis document vault. Ready for AI review, source check and lawyer sign-off.',tags:['New',$('newCategory').value]});$('title').value='';$('matter').value='';save()}
+function statusChange(id,value){docs=docs.map(d=>d.id===id?{...d,status:value,updatedAt:new Date().toISOString().slice(0,10)}:d);save()}
+function removeDoc(id){docs=docs.filter(d=>d.id!==id);save()}
+function render(){const cats=['All',...new Set(docs.map(d=>d.category))];const current=$('category').value||'All';$('category').innerHTML=cats.map(c=>`<option ${c===current?'selected':''}>${c}</option>`).join('');const q=$('search').value.toLowerCase();const st=$('status').value;const cat=$('category').value;$('sTotal').textContent=docs.length;$('sHigh').textContent=docs.filter(d=>d.risk==='High').length;$('sReview').textContent=docs.filter(d=>d.status==='Lawyer Review').length;$('sApproved').textContent=docs.filter(d=>d.status==='Final Approved').length;const filtered=docs.filter(d=>`${d.title} ${d.category} ${d.matter} ${d.summary} ${d.tags.join(' ')}`.toLowerCase().includes(q)&&(st==='All'||d.status===st)&&(cat==='All'||d.category===cat));$('docs').innerHTML=filtered.length?filtered.map(d=>`<article class="card doc"><div class="doc-top"><span class="type">${d.type}</span><span class="risk risk-${d.risk.toLowerCase()}">${d.risk} Risk</span></div><h3>${d.title}</h3><p class="muted">${d.summary}</p><div class="meta"><span>${d.category}</span><span>${d.matter}</span><span>${d.size}</span><span>Updated ${d.updatedAt}</span></div><div class="tags">${d.tags.map(t=>`<span>${t}</span>`).join('')}</div><div class="row"><select onchange="statusChange('${d.id}',this.value)">${['AI Draft','Source Checked','Lawyer Review','Final Approved'].map(s=>`<option ${s===d.status?'selected':''}>${s}</option>`).join('')}</select><button class="secondary" onclick="removeDoc('${d.id}')">Remove</button></div></article>`).join(''):`<section class="card empty"><h3>No matching documents</h3><p class="muted">Change the search or filters, or add a new document record.</p></section>`}
+$('file').addEventListener('change',e=>add(e.target.files[0]));$('manual').addEventListener('click',()=>add(null));$('search').addEventListener('input',render);$('status').addEventListener('change',render);$('category').addEventListener('change',render);render();
+</script>
+</body>
+</html>
