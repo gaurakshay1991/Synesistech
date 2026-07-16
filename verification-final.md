@@ -1,3 +1,3 @@
-# LIVE SYNESIS 2.1 final verification
+# LIVE SYNESIS 3 release verification
 
-Runs the complete tests and production build against the finalized private-pilot codebase.
+The release passed the complete regression suite, production frontend build and authenticated Neon-backed API workflow.
