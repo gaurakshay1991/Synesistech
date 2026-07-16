@@ -13,7 +13,7 @@
     "build": "npm --workspace client run build",
     "test": "npm --workspace server test",
     "check": "npm test && npm run build",
-    "replit": "npm run build && NODE_ENV=production npm run start"
+    "replit": "npm install --no-audit --no-fund && npm run build && NODE_ENV=production npm run start"
   },
   "devDependencies": {
     "concurrently": "^9.1.2"
