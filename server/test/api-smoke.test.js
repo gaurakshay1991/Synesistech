@@ -36,8 +36,12 @@ test('LIVE SYNESIS API completes login, document analysis, comparison, assistant
   const port = 41000 + Math.floor(Math.random() * 1000);
   const baseUrl = `http://127.0.0.1:${port}`;
   const output = [];
+  const currentDirectory = process.cwd();
+  const serverDirectory = path.basename(currentDirectory) === 'server'
+    ? currentDirectory
+    : path.resolve(currentDirectory, 'server');
   const server = spawn(process.execPath, ['src/index.js'], {
-    cwd: path.resolve('server'),
+    cwd: serverDirectory,
     env: {
       ...process.env,
       NODE_ENV: 'test',
