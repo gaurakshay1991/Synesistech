@@ -1,0 +1,17 @@
+{
+  "name": "LIVE SYNESIS",
+  "short_name": "SYNESIS",
+  "description": "Secure document-first legal and compliance review for regulated teams.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f4f7fb",
+  "theme_color": "#174cc0",
+  "icons": [
+    {
+      "src": "/synesis-mark.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}
