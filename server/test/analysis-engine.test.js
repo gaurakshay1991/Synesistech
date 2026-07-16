@@ -53,3 +53,19 @@ test('analysis is document-specific rather than title-specific', () => {
   assert.notEqual(nda.overall_score, vendor.overall_score);
   assert.ok(vendor.findings.length > nda.findings.length);
 });
+
+test('adverse clauses are not mistaken for protective language in a compact document', () => {
+  const compact = `VENDOR SERVICES AGREEMENT.
+  Vendor may use Bank customer KYC records for model training and investor demonstrations.
+  Vendor may subcontract offshore without approval and is not liable for subcontractors.
+  Vendor will notify a data breach within thirty business days.
+  Bank and regulators shall not have audit rights.
+  Vendor liability is INR 50,000.
+  Vendor may terminate immediately; Bank may not terminate for convenience.`;
+  const result = heuristicAnalyze(compact, { documentType: 'Vendor / Outsourcing Agreement' });
+  assert.equal(result.overall_risk, 'High');
+  assert.ok(result.overall_score >= 85);
+  assert.ok(result.findings.length >= 7);
+  assert.ok(result.findings.some(item => item.issue === 'Inadequate Bank and regulatory audit access'));
+  assert.ok(result.findings.some(item => item.issue === 'Unauthorised secondary use of Bank Data'));
+});

@@ -39,3 +39,4 @@ jobs:
           retention-days: 1
       - name: Build production frontend
         run: npm run build
+

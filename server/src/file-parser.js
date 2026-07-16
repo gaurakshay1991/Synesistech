@@ -1,5 +1,7 @@
 import mammoth from 'mammoth';
 import pdfParse from 'pdf-parse';
+import crypto from 'node:crypto';
+import path from 'node:path';
 
 const TEXT_TYPES = new Set([
   'text/plain',
@@ -24,6 +26,26 @@ function cleanText(value) {
     .trim();
 }
 
+function safeName(value = 'Uploaded document') {
+  return path.basename(String(value)).replace(/[\u0000-\u001f\u007f]/g, '').slice(0, 240) || 'Uploaded document';
+}
+
+function validateSignature(file, ext) {
+  if (!file?.buffer?.length) throw new Error('The uploaded file is empty.');
+  if (ext === 'pdf' && file.buffer.subarray(0, 5).toString('ascii') !== '%PDF-') {
+    throw new Error('The file extension is PDF but the file content is not a valid PDF.');
+  }
+  if (ext === 'docx') {
+    const signature = file.buffer.subarray(0, 2).toString('ascii');
+    if (signature !== 'PK') throw new Error('The file extension is DOCX but the file content is not a valid DOCX package.');
+  }
+  if (['txt', 'csv', 'json', 'md', 'xml'].includes(ext)) {
+    const sample = file.buffer.subarray(0, Math.min(file.buffer.length, 4096));
+    const controlBytes = [...sample].filter(value => value === 0 || (value < 8 && value !== 0)).length;
+    if (controlBytes > 3) throw new Error('The uploaded text file appears to contain binary data.');
+  }
+}
+
 export async function extractDocumentText(file, pastedText = '') {
   const manual = cleanText(pastedText);
   if (!file) {
@@ -33,12 +55,16 @@ export async function extractDocumentText(file, pastedText = '') {
       fileName: 'Pasted document',
       mimeType: 'text/plain',
       sizeBytes: Buffer.byteLength(manual),
-      parser: 'pasted-text'
+      parser: 'pasted-text',
+      contentSha256: crypto.createHash('sha256').update(manual).digest('hex'),
+      truncated: false
     };
   }
 
-  const ext = extension(file.originalname);
+  const fileName = safeName(file.originalname);
+  const ext = extension(fileName);
   const mime = file.mimetype || 'application/octet-stream';
+  validateSignature(file, ext);
   let extracted = '';
   let parser = '';
 
@@ -69,10 +95,11 @@ export async function extractDocumentText(file, pastedText = '') {
 
   return {
     text: combined.slice(0, 180000),
-    fileName: file.originalname,
+    fileName,
     mimeType: mime,
     sizeBytes: file.size,
     parser,
-    truncated: combined.length > 180000
+    truncated: combined.length > 180000,
+    contentSha256: crypto.createHash('sha256').update(combined).digest('hex')
   };
 }

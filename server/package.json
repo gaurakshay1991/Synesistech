@@ -1,14 +1,18 @@
 {
   "name": "live-synesis-server",
-  "version": "2.1.0",
+  "version": "3.0.0",
   "private": true,
   "type": "module",
   "scripts": {
     "dev": "nodemon src/index.js",
     "start": "node src/index.js",
-    "test": "node --test"
+    "test": "node --test",
+    "db:migrate": "node scripts/migrate.js"
   },
   "dependencies": {
+    "@neondatabase/serverless": "^1.0.1",
+    "bcryptjs": "^3.0.2",
+    "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
     "dotenv": "^16.4.7",
     "express": "^4.21.2",

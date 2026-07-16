@@ -148,3 +148,4 @@ export const ANALYSIS_JSON_SCHEMA = {
     assumptions_and_limits: { type: 'array', items: { type: 'string' } }
   }
 };
+
