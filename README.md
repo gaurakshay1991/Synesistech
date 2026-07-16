@@ -1,41 +1,70 @@
-# Synesis Private Investor Platform
+# LIVE SYNESIS
 
-Synesis is a private LegalTech web platform for live legal research, contract review, clause rewriting, legal memo generation and regulatory watch.
+LIVE SYNESIS is a document-led legal and compliance operating platform designed initially for banks and other regulated financial institutions.
 
-This repository is private and intended only for Akshay and selected investors. There is no payment module and no public self-signup.
+The uploaded document is the source of truth. The platform extracts the actual file, identifies clauses and sections, detects risks, gaps, contradictions and missing protections, explains why each issue is risky for the Bank, assigns a High/Medium/Low risk and score, recommends mitigation, rewrites clauses, creates document-specific scenarios and produces a decision-ready report.
 
-## Features
+## What is included in this MVP
 
-- Private login for admin, investor and reviewer roles
-- Live legal research through backend AI integration
-- Contract review from pasted agreement text
-- Clause rewrite by negotiation stance
-- Legal memo generator
-- Regulatory watch module
-- Admin audit view
-- Responsive web UI for desktop and mobile browser use
+- Private role-based login for Admin, Legal, Compliance, KYC/AML and Management
+- Upload and extraction for PDF, DOCX, TXT, CSV, JSON and Markdown
+- Pasted-text analysis when no file is available
+- Local deterministic baseline engine that responds to the uploaded text
+- OpenAI structured-output analysis when `OPENAI_API_KEY` is configured
+- Clause-level evidence, issue, risk category, level and score
+- Bank-specific explanation of why and how the risk may materialise
+- Legal, regulatory, financial, operational, data/cyber and reputational impact
+- Recommended mitigation and Bank-protective clause rewrite
+- Missing-clause and contradiction detection
+- Document-specific scenario testing
+- Regulatory, cyber and KYC/AML touchpoint mapping
+- Decision workflow and institutional-memory view
+- Downloadable text and JSON reports
+- Audit trail
+- Automated comparison tests using defective and corrected vendor agreements
 
 ## Run locally
 
 ```bash
 cp .env.example .env
-npm run install:all
+npm install
 npm run dev
 ```
 
 Frontend: `http://localhost:5173`
+
 Backend: `http://localhost:8080`
 
-Keep all secrets only in your local or server environment file.
+Add the API key you created to the private `.env` file as `OPENAI_API_KEY`. Never commit the real key.
 
-## Demo users
+## Test
 
-- Admin: `admin@synesis.local`
-- Investor: `investor@synesis.local`
-- Reviewer: `reviewer@synesis.local`
+```bash
+npm test
+```
 
-Passwords are configured in `.env`.
+The tests verify that:
 
-## Limitation
+1. the deliberately defective agreement receives materially higher risk than the corrected agreement;
+2. replacing a 30-business-day incident notice with a 24-hour notice changes the related risk result; and
+3. analysis follows document content rather than the filename or title.
 
-This is a private investor-ready technical build. Before public or institutional use, add persistent database, encrypted document storage, matter permissions, password hashing, role management, deployment protection, formal logs and privacy review.
+## Core API flow
+
+`POST /api/documents/analyze` accepts multipart form data:
+
+- `file`: PDF, DOCX, TXT, CSV, JSON or MD
+- `text`: optional pasted text/context
+- `title`
+- `matter`
+- `documentType`
+- `jurisdiction`
+- `riskAppetite`
+
+The response contains the saved document and structured analysis.
+
+## Important MVP limits
+
+This branch is a working private MVP, not a bank-production deployment. Before institutional use, replace the JSON store with an approved database; use encrypted object storage; add enterprise identity/SSO, password hashing, granular tenant and matter permissions, secrets management, malware scanning, DLP, retention controls, immutable audit logging, queue-based processing, observability, penetration testing, legal/regulatory validation and approved hosting.
+
+The platform provides decision support. Final legal, compliance, cyber, KYC/AML, risk and management approval remains with authorised Bank personnel.
