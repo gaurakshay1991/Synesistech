@@ -1,0 +1,15 @@
+modules = ["nodejs-20"]
+run = "npm run replit"
+entrypoint = "server/src/index.js"
+
+[env]
+PORT = "3000"
+NODE_ENV = "production"
+
+[deployment]
+deploymentTarget = "autoscale"
+run = ["sh", "-c", "npm run replit"]
+
+[[ports]]
+localPort = 3000
+externalPort = 80
