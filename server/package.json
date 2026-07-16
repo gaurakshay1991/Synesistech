@@ -1,6 +1,6 @@
 {
   "name": "live-synesis-server",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "private": true,
   "type": "module",
   "scripts": {
@@ -16,7 +16,7 @@
     "helmet": "^8.0.0",
     "jsonwebtoken": "^9.0.2",
     "mammoth": "^1.8.0",
-    "multer": "^1.4.5-lts.1",
+    "multer": "^2.0.2",
     "openai": "^5.0.0",
     "pdf-parse": "^1.1.1",
     "zod": "^3.24.1"
