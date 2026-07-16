@@ -1,11 +1,12 @@
 {
-  "name": "synesis-server",
-  "version": "1.0.0",
+  "name": "live-synesis-server",
+  "version": "2.0.0",
   "private": true,
   "type": "module",
   "scripts": {
     "dev": "nodemon src/index.js",
-    "start": "node src/index.js"
+    "start": "node src/index.js",
+    "test": "node --test"
   },
   "dependencies": {
     "cors": "^2.8.5",
@@ -14,9 +15,9 @@
     "express-rate-limit": "^7.5.0",
     "helmet": "^8.0.0",
     "jsonwebtoken": "^9.0.2",
+    "mammoth": "^1.8.0",
     "multer": "^1.4.5-lts.1",
     "openai": "^5.0.0",
-    "mammoth": "^1.8.0",
     "pdf-parse": "^1.1.1",
     "zod": "^3.24.1"
   },

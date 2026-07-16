@@ -1,6 +1,6 @@
 {
-  "name": "synesis-private-investor-platform",
-  "version": "1.0.0",
+  "name": "live-synesis-platform",
+  "version": "2.0.0",
   "private": true,
   "type": "module",
   "workspaces": [
@@ -11,7 +11,8 @@
     "install:all": "npm install",
     "dev": "concurrently \"npm --workspace server run dev\" \"npm --workspace client run dev\"",
     "start": "npm --workspace server start",
-    "build": "npm --workspace client run build"
+    "build": "npm --workspace client run build",
+    "test": "npm --workspace server test"
   },
   "devDependencies": {
     "concurrently": "^9.1.2"
