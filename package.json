@@ -1,6 +1,6 @@
 {
   "name": "live-synesis-platform",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "private": true,
   "type": "module",
   "workspaces": [
@@ -8,11 +8,12 @@
     "server"
   ],
   "scripts": {
-    "install:all": "npm install",
     "dev": "concurrently \"npm --workspace server run dev\" \"npm --workspace client run dev\"",
     "start": "npm --workspace server start",
     "build": "npm --workspace client run build",
-    "test": "npm --workspace server test"
+    "test": "npm --workspace server test",
+    "check": "npm test && npm run build",
+    "replit": "npm run build && NODE_ENV=production npm run start"
   },
   "devDependencies": {
     "concurrently": "^9.1.2"
