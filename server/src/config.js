@@ -41,7 +41,7 @@ export function assertProductionConfig() {
   if (!config.databaseUrl) missing.push('DATABASE_URL');
   if (config.jwtSecret.length < 32) missing.push('JWT_SECRET');
   if (config.encryptionSecret.length < 32) missing.push('DATA_ENCRYPTION_KEY');
-  if (!config.bootstrapAdmin.email || config.bootstrapAdmin.password.length < 12) {
+  if (!config.bootstrapAdmin.email || config.bootstrapAdmin.password.length < 8) {
     missing.push('BOOTSTRAP_ADMIN_EMAIL/BOOTSTRAP_ADMIN_PASSWORD');
   }
   if (missing.length) {
