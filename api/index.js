@@ -8,6 +8,11 @@ const gateway = express();
 const openai = config.openaiKey && !/(set_in|paste|replace|your_key)/i.test(config.openaiKey)
   ? new OpenAI({ apiKey: config.openaiKey, timeout: 55_000, maxRetries: 1 })
   : null;
+const analysisOpenAI = openai ? {
+  responses: {
+    create: parameters => openai.responses.create({ ...parameters, store: false })
+  }
+} : null;
 
 const publicLimiter = rateLimit({
   windowMs: 15 * 60_000,
@@ -25,7 +30,7 @@ gateway.get('/api/health', (req, res) => {
   res.json({
     ok: true,
     product: 'LIVE SYNESIS',
-    version: '3.1.0',
+    version: '3.1.1',
     publicWorkspace: true,
     ai: openai ? 'openai-structured-output-with-baseline-fallback' : 'document-specific-baseline',
     model: config.openaiModel,
@@ -34,6 +39,37 @@ gateway.get('/api/health', (req, res) => {
     supportedUploads: ['PDF', 'DOCX', 'TXT', 'CSV', 'JSON', 'MD', 'XML'],
     time: new Date().toISOString()
   });
+});
+
+gateway.get('/api/self-test', publicLimiter, async (req, res) => {
+  try {
+    const analysis = await analyzeDocument({
+      openai: analysisOpenAI,
+      model: config.openaiModel,
+      text: 'Vendor may use Bank Data for model training and investor demonstrations. Vendor shall notify a data breach within thirty business days. Bank and regulators shall not have audit rights. Vendor liability shall not exceed INR 50,000. Vendor may subcontract without approval and shall not be liable for subcontractors.',
+      options: {
+        title: 'LIVE SYNESIS production self-test',
+        fileName: 'self-test.txt',
+        matter: 'Production verification',
+        documentType: 'Vendor / Outsourcing Agreement',
+        jurisdiction: 'India',
+        riskAppetite: 'Conservative',
+        department: 'Legal'
+      }
+    });
+    res.json({
+      ok: true,
+      engine: analysis.engine,
+      risk: analysis.overall_risk,
+      score: analysis.overall_score,
+      findings: analysis.findings?.length || 0,
+      highRiskFindings: (analysis.findings || []).filter(item => item.risk_level === 'High').length,
+      decision: analysis.recommended_decision
+    });
+  } catch (error) {
+    console.error('Production self-test failed:', error);
+    res.status(500).json({ ok: false, error: 'Production analysis self-test failed.' });
+  }
 });
 
 gateway.post('/api/public/analyze', publicLimiter, async (req, res) => {
@@ -53,7 +89,7 @@ gateway.post('/api/public/analyze', publicLimiter, async (req, res) => {
 
   try {
     const analysis = await analyzeDocument({
-      openai,
+      openai: analysisOpenAI,
       model: config.openaiModel,
       text,
       options
