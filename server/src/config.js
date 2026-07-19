@@ -10,13 +10,17 @@ dotenv.config({ path: path.join(ROOT_DIR, '.env.local'), override: false });
 dotenv.config({ path: path.join(ROOT_DIR, '.env'), override: false });
 
 const production = process.env.NODE_ENV === 'production' || Boolean(process.env.VERCEL);
+const publicMode = String(process.env.SYNESIS_PUBLIC_MODE ?? 'true').toLowerCase() !== 'false';
 
 export const config = Object.freeze({
   production,
+  publicMode,
   port: Number(process.env.PORT || 3000),
   clientDist: path.join(ROOT_DIR, 'client', 'dist'),
   databaseUrl: process.env.DATABASE_URL || '',
-  dataFile: process.env.DATA_FILE || path.join(ROOT_DIR, 'server', 'data', 'live-synesis-store.json'),
+  dataFile: process.env.DATA_FILE || (production
+    ? '/tmp/live-synesis-store.json'
+    : path.join(ROOT_DIR, 'server', 'data', 'live-synesis-store.json')),
   jwtSecret: process.env.JWT_SECRET || (production ? '' : 'live-synesis-local-development-secret'),
   encryptionSecret: process.env.DATA_ENCRYPTION_KEY || process.env.JWT_SECRET || (production ? '' : 'live-synesis-local-encryption-secret'),
   openaiKey: process.env.OPENAI_API_KEY || '',
@@ -36,7 +40,7 @@ export const config = Object.freeze({
 });
 
 export function assertProductionConfig() {
-  if (!config.production) return;
+  if (!config.production || config.publicMode) return;
   const missing = [];
   if (!config.databaseUrl) missing.push('DATABASE_URL');
   if (config.jwtSecret.length < 32) missing.push('JWT_SECRET');
