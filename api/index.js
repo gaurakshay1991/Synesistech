@@ -30,7 +30,7 @@ gateway.get('/api/health', (req, res) => {
   res.json({
     ok: true,
     product: 'LIVE SYNESIS',
-    version: '3.1.1',
+    version: '3.1.2',
     publicWorkspace: true,
     ai: openai ? 'openai-structured-output-with-baseline-fallback' : 'document-specific-baseline',
     model: config.openaiModel,
@@ -42,7 +42,16 @@ gateway.get('/api/health', (req, res) => {
 });
 
 gateway.get('/api/self-test', publicLimiter, async (req, res) => {
+  if (!openai) {
+    return res.status(503).json({ ok: false, stage: 'configuration', code: 'openai_not_configured' });
+  }
   try {
+    const probe = await openai.responses.create({
+      model: config.openaiModel,
+      input: 'Return exactly the single word READY.',
+      max_output_tokens: 16,
+      store: false
+    });
     const analysis = await analyzeDocument({
       openai: analysisOpenAI,
       model: config.openaiModel,
@@ -59,6 +68,7 @@ gateway.get('/api/self-test', publicLimiter, async (req, res) => {
     });
     res.json({
       ok: true,
+      connectivity: Boolean(probe.output_text),
       engine: analysis.engine,
       risk: analysis.overall_risk,
       score: analysis.overall_score,
@@ -67,8 +77,14 @@ gateway.get('/api/self-test', publicLimiter, async (req, res) => {
       decision: analysis.recommended_decision
     });
   } catch (error) {
-    console.error('Production self-test failed:', error);
-    res.status(500).json({ ok: false, error: 'Production analysis self-test failed.' });
+    console.error('Production OpenAI self-test failed:', error?.status, error?.code, error?.message);
+    res.status(503).json({
+      ok: false,
+      stage: 'openai_connectivity',
+      status: Number(error?.status || 0) || null,
+      code: String(error?.code || error?.type || 'unknown_error').slice(0, 100),
+      message: String(error?.message || 'OpenAI request failed.').replace(/sk-[A-Za-z0-9_-]+/g, '[redacted]').slice(0, 300)
+    });
   }
 });
 
