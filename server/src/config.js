@@ -13,6 +13,12 @@ export function normalizeDatabaseUrl(value = '') {
   return String(value).replace(/[\r\n\t ]+/g, '');
 }
 
+export function normalizeOpenAIModel(value = '') {
+  const requested = String(value || 'gpt-5-mini').trim();
+  const chatOnlyAliases = new Set(['gpt-5.6', 'gpt-5.6-thinking', 'chatgpt-gpt-5.6']);
+  return chatOnlyAliases.has(requested.toLowerCase()) ? 'gpt-5-mini' : requested;
+}
+
 const production = process.env.NODE_ENV === 'production' || Boolean(process.env.VERCEL);
 const publicMode = String(process.env.SYNESIS_PUBLIC_MODE ?? 'true').toLowerCase() !== 'false';
 
@@ -28,7 +34,7 @@ export const config = Object.freeze({
   jwtSecret: process.env.JWT_SECRET || (production ? '' : 'live-synesis-local-development-secret'),
   encryptionSecret: process.env.DATA_ENCRYPTION_KEY || process.env.JWT_SECRET || (production ? '' : 'live-synesis-local-encryption-secret'),
   openaiKey: process.env.OPENAI_API_KEY || '',
-  openaiModel: process.env.OPENAI_MODEL || 'gpt-5-mini',
+  openaiModel: normalizeOpenAIModel(process.env.OPENAI_MODEL),
   maxUploadMb: Math.max(1, Math.min(25, Number(process.env.MAX_UPLOAD_MB || 15))),
   organizationName: process.env.SYNESIS_ORGANIZATION_NAME || 'Synesis',
   organizationSlug: process.env.SYNESIS_ORGANIZATION_SLUG || 'synesis',
