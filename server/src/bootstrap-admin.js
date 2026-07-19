@@ -1,8 +1,9 @@
 import bcrypt from 'bcryptjs';
 import { neon } from '@neondatabase/serverless';
+import { normalizeDatabaseUrl } from './config.js';
 
 export async function synchronizeBootstrapAdmin() {
-  const databaseUrl = String(process.env.DATABASE_URL || '').trim();
+  const databaseUrl = normalizeDatabaseUrl(process.env.DATABASE_URL);
   const email = String(process.env.BOOTSTRAP_ADMIN_EMAIL || '').trim().toLowerCase();
   const password = String(process.env.BOOTSTRAP_ADMIN_PASSWORD || '');
 
