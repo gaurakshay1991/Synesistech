@@ -1,12 +1,12 @@
 import React from 'react';
 import { createRoot } from 'react-dom/client';
 import { Analytics } from '@vercel/analytics/react';
-import PublicApp from './PublicApp.jsx';
-import './public-app.css';
+import LivePublicApp from './LivePublicApp.jsx';
+import './live-public.css';
 
 createRoot(document.getElementById('root')).render(
   <React.StrictMode>
-    <PublicApp />
+    <LivePublicApp />
     <Analytics />
   </React.StrictMode>
 );
