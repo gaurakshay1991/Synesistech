@@ -30,62 +30,16 @@ gateway.get('/api/health', (req, res) => {
   res.json({
     ok: true,
     product: 'LIVE SYNESIS',
-    version: '3.1.2',
+    version: '3.2.0',
     publicWorkspace: true,
-    ai: openai ? 'openai-structured-output-with-baseline-fallback' : 'document-specific-baseline',
+    analysis: 'document-specific-with-deterministic-fallback',
+    aiConfigured: Boolean(openai),
     model: config.openaiModel,
     persistence: 'browser-local-for-public-workspace',
     privateWorkspace: config.databaseUrl ? 'configured-separately' : 'not-configured',
     supportedUploads: ['PDF', 'DOCX', 'TXT', 'CSV', 'JSON', 'MD', 'XML'],
     time: new Date().toISOString()
   });
-});
-
-gateway.get('/api/self-test', publicLimiter, async (req, res) => {
-  if (!openai) {
-    return res.status(503).json({ ok: false, stage: 'configuration', code: 'openai_not_configured' });
-  }
-  try {
-    const probe = await openai.responses.create({
-      model: config.openaiModel,
-      input: 'Return exactly the single word READY.',
-      max_output_tokens: 16,
-      store: false
-    });
-    const analysis = await analyzeDocument({
-      openai: analysisOpenAI,
-      model: config.openaiModel,
-      text: 'Vendor may use Bank Data for model training and investor demonstrations. Vendor shall notify a data breach within thirty business days. Bank and regulators shall not have audit rights. Vendor liability shall not exceed INR 50,000. Vendor may subcontract without approval and shall not be liable for subcontractors.',
-      options: {
-        title: 'LIVE SYNESIS production self-test',
-        fileName: 'self-test.txt',
-        matter: 'Production verification',
-        documentType: 'Vendor / Outsourcing Agreement',
-        jurisdiction: 'India',
-        riskAppetite: 'Conservative',
-        department: 'Legal'
-      }
-    });
-    res.json({
-      ok: true,
-      connectivity: Boolean(probe.output_text),
-      engine: analysis.engine,
-      risk: analysis.overall_risk,
-      score: analysis.overall_score,
-      findings: analysis.findings?.length || 0,
-      highRiskFindings: (analysis.findings || []).filter(item => item.risk_level === 'High').length,
-      decision: analysis.recommended_decision
-    });
-  } catch (error) {
-    console.error('Production OpenAI self-test failed:', error?.status, error?.code, error?.message);
-    res.status(503).json({
-      ok: false,
-      stage: 'openai_connectivity',
-      status: Number(error?.status || 0) || null,
-      code: String(error?.code || error?.type || 'unknown_error').slice(0, 100),
-      message: String(error?.message || 'OpenAI request failed.').replace(/sk-[A-Za-z0-9_-]+/g, '[redacted]').slice(0, 300)
-    });
-  }
 });
 
 gateway.post('/api/public/analyze', publicLimiter, async (req, res) => {
@@ -110,6 +64,7 @@ gateway.post('/api/public/analyze', publicLimiter, async (req, res) => {
       text,
       options
     });
+    res.set('Cache-Control', 'no-store');
     res.json({
       analysis,
       processing: {
@@ -140,6 +95,7 @@ gateway.post('/api/public/ask', publicLimiter, async (req, res) => {
       .slice(0, 6)
       .map(entry => `${entry.item.risk_level}: ${entry.item.issue}\nEvidence: ${entry.item.quoted_text}\nPosition: ${entry.item.why_risky_for_bank}\nAction: ${entry.item.recommended_mitigation}`)
       .join('\n\n');
+    res.set('Cache-Control', 'no-store');
     return res.json({ answer: answer || 'The active analysis does not contain enough evidence to answer that question reliably.', engine: 'baseline-grounded-answer' });
   }
 
@@ -149,10 +105,18 @@ gateway.post('/api/public/ask', publicLimiter, async (req, res) => {
       store: false,
       input: `You are LIVE SYNESIS. Answer only from the supplied active-document analysis. Do not invent clauses, law, facts or citations. State uncertainty clearly. Address the institution as the Bank.\n\nQUESTION\n${question}\n\nACTIVE ANALYSIS\n${JSON.stringify(analysis).slice(0, 90000)}`
     });
+    res.set('Cache-Control', 'no-store');
     res.json({ answer: response.output_text || 'No answer was returned.', engine: 'openai-grounded-answer' });
   } catch (error) {
-    console.error('Public question failed:', error);
-    res.status(500).json({ error: 'LIVE SYNESIS could not answer from the active document.' });
+    const terms = question.toLowerCase().split(/[^a-z0-9]+/).filter(term => term.length > 3);
+    const answer = findings
+      .map(item => ({ item, score: terms.reduce((sum, term) => sum + Number(JSON.stringify(item).toLowerCase().includes(term)), 0) }))
+      .sort((a, b) => b.score - a.score)
+      .slice(0, 6)
+      .map(entry => `${entry.item.risk_level}: ${entry.item.issue}\nEvidence: ${entry.item.quoted_text}\nPosition: ${entry.item.why_risky_for_bank}\nAction: ${entry.item.recommended_mitigation}`)
+      .join('\n\n');
+    res.set('Cache-Control', 'no-store');
+    res.json({ answer: answer || 'The active analysis does not contain enough evidence to answer that question reliably.', engine: 'baseline-grounded-answer' });
   }
 });
 
