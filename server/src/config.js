@@ -9,6 +9,10 @@ dotenv.config({ path: path.join(ROOT_DIR, '.env.runtime'), override: false });
 dotenv.config({ path: path.join(ROOT_DIR, '.env.local'), override: false });
 dotenv.config({ path: path.join(ROOT_DIR, '.env'), override: false });
 
+export function normalizeDatabaseUrl(value = '') {
+  return String(value).replace(/[\r\n\t ]+/g, '');
+}
+
 const production = process.env.NODE_ENV === 'production' || Boolean(process.env.VERCEL);
 const publicMode = String(process.env.SYNESIS_PUBLIC_MODE ?? 'true').toLowerCase() !== 'false';
 
@@ -17,7 +21,7 @@ export const config = Object.freeze({
   publicMode,
   port: Number(process.env.PORT || 3000),
   clientDist: path.join(ROOT_DIR, 'client', 'dist'),
-  databaseUrl: process.env.DATABASE_URL || '',
+  databaseUrl: normalizeDatabaseUrl(process.env.DATABASE_URL),
   dataFile: process.env.DATA_FILE || (production
     ? '/tmp/live-synesis-store.json'
     : path.join(ROOT_DIR, 'server', 'data', 'live-synesis-store.json')),
