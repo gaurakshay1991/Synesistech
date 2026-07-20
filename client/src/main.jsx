@@ -5,6 +5,7 @@ import RootApp from './RootApp.jsx';
 import './institutional.css';
 import './lab.css';
 import './regulatory-command.css';
+import './platform-home.css';
 
 createRoot(document.getElementById('root')).render(
   <React.StrictMode>
