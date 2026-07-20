@@ -2,10 +2,11 @@ import { config } from './config.js';
 import { synchronizeBootstrapAdmin } from './bootstrap-admin.js';
 
 await synchronizeBootstrapAdmin();
-const { default: app } = await import('./app.js');
+const { default: app } = await import('../../api/index.js');
 
 const server = app.listen(config.port, '0.0.0.0', () => {
-  console.log(`LIVE SYNESIS 3 running on port ${config.port}`);
+  console.log(`LIVE SYNESIS 4 running on port ${config.port}`);
+  console.log(`Institutional multipass analysis: ${config.openaiKey ? `configured with ${config.openaiModel}` : 'emergency fallback only'}`);
 });
 
 function shutdown(signal) {
