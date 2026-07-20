@@ -11,11 +11,26 @@ import {
   answerFromInstitutionalContext
 } from '../server/src/institutional-engine.js';
 import { scenarioCatalogue, simulateInstitutionalScenario } from '../server/src/simulation-engine.js';
+import {
+  enrichAnalysisWithOpenIntelligence,
+  mergeSourceSets,
+  researchActiveMatter
+} from '../server/src/themis-open-intelligence.js';
 
 const gateway = express();
-const openai = config.openaiKey && !/(set_in|paste|replace|your_key)/i.test(config.openaiKey)
-  ? new OpenAI({ apiKey: config.openaiKey, timeout: 110_000, maxRetries: 1 })
-  : null;
+const directOpenAIKey = config.openaiKey && !/(set_in|paste|replace|your_key)/i.test(config.openaiKey)
+  ? config.openaiKey
+  : '';
+const aiGatewayKey = process.env.AI_GATEWAY_API_KEY || process.env.VERCEL_OIDC_TOKEN || '';
+const usingAIGateway = !directOpenAIKey && Boolean(aiGatewayKey);
+const activeModel = usingAIGateway
+  ? (process.env.AI_GATEWAY_MODEL || `openai/${config.openaiModel}`)
+  : config.openaiModel;
+const openai = directOpenAIKey
+  ? new OpenAI({ apiKey: directOpenAIKey, timeout: 110_000, maxRetries: 1 })
+  : aiGatewayKey
+    ? new OpenAI({ apiKey: aiGatewayKey, baseURL: 'https://ai-gateway.vercel.sh/v1', timeout: 110_000, maxRetries: 1 })
+    : null;
 const analysisOpenAI = openai ? {
   responses: {
     create: parameters => openai.responses.create({ ...parameters, store: false })
@@ -100,6 +115,18 @@ function fallbackAnswer(analysis, question) {
   return answer || 'The active analysis does not contain enough evidence to answer that question reliably.';
 }
 
+function researchOptions(req, fallback = {}) {
+  return {
+    jurisdiction: cleanString(req.body?.jurisdiction, fallback.jurisdiction || 'India', 100),
+    countryCode: cleanString(req.body?.countryCode, fallback.countryCode || 'IN', 2).toUpperCase(),
+    city: cleanString(req.body?.city, fallback.city || 'New Delhi', 100),
+    region: cleanString(req.body?.region, fallback.region || 'Delhi', 100),
+    timezone: cleanString(req.body?.timezone, fallback.timezone || 'Asia/Kolkata', 80),
+    institutionName: cleanString(req.body?.institutionName, fallback.institutionName || 'Institution', 200),
+    institutionFunction: cleanString(req.body?.institutionFunction, fallback.institutionFunction || 'Enterprise / Institution', 120)
+  };
+}
+
 gateway.disable('x-powered-by');
 gateway.set('trust proxy', 1);
 gateway.use(express.json({ limit: '8mb' }));
@@ -108,12 +135,18 @@ gateway.get('/api/health', (req, res) => {
   res.json({
     ok: true,
     product: 'LIVE SYNESIS',
-    version: '4.2.0-institutional-core',
+    version: '4.3.0-themis-open-intelligence',
     institutionalWorkspace: true,
     publicWorkspace: true,
-    analysis: 'live-multipass-decision-intelligence-plus-calculation-and-simulation-engines',
+    analysis: 'live-multipass-decision-intelligence-plus-open-world-research-calculation-and-simulation',
     aiConfigured: Boolean(openai),
-    model: config.openaiModel,
+    aiProvider: usingAIGateway ? 'vercel-ai-gateway' : directOpenAIKey ? 'openai-direct' : 'not-configured',
+    model: activeModel,
+    openWorldAnalysis: true,
+    themis: {
+      active: Boolean(openai),
+      capabilities: ['document reasoning', 'current external research', 'evidence-inference separation', 'decision implications', 'controlled action planning']
+    },
     persistence: 'browser-local-for-public-workspace',
     privateWorkspace: config.databaseUrl ? 'configured-separately' : 'not-configured',
     supportedUploads: ['PDF', 'DOCX', 'TXT', 'CSV', 'JSON', 'MD', 'XML'],
@@ -122,6 +155,7 @@ gateway.get('/api/health', (req, res) => {
       'deep-document-reasoning',
       'decision-and-obligation-modelling',
       'independent-challenge-review',
+      'themis-open-intelligence',
       'current-source-verification',
       'institutional-simulation',
       'portfolio-calculation',
@@ -198,21 +232,23 @@ gateway.post('/api/public/institutional/ask', publicLimiter, async (req, res) =>
   const fallback = answerFromInstitutionalContext(question, context);
   if (!openai) {
     res.set('Cache-Control', 'no-store');
-    return res.json({ answer: fallback, engine: 'institutional-grounded-answer' });
+    return res.json({ answer: `${fallback}\n\nLive external intelligence is unavailable because no model provider is configured.`, engine: 'institutional-grounded-fallback', sources: [] });
   }
   try {
-    const response = await openai.responses.create({
-      model: config.openaiModel,
-      store: false,
-      max_output_tokens: 3500,
-      input: `You are LIVE SYNESIS, an institutional decision-intelligence assistant. Answer only from the supplied uploaded and calculated context. Separate source facts, calculations and inference. Never invent market data, law, issuer facts, portfolio holdings, approvals or completed actions. If evidence is insufficient, say so.\n\nQUESTION\n${question}\n\nACTIVE CONTEXT\n${JSON.stringify(context).slice(0, 120000)}`
+    const result = await researchActiveMatter({
+      client: analysisOpenAI,
+      model: activeModel,
+      question,
+      context,
+      contextLabel: 'ACTIVE INSTITUTIONAL CONTEXT',
+      options: researchOptions(req)
     });
     res.set('Cache-Control', 'no-store');
-    return res.json({ answer: response.output_text || fallback, engine: 'openai-institutional-grounded-answer' });
+    return res.json(result);
   } catch (error) {
-    console.error('Institutional grounded answer fell back:', error);
+    console.error('Themis institutional research fell back:', error);
     res.set('Cache-Control', 'no-store');
-    return res.json({ answer: fallback, engine: 'institutional-grounded-answer' });
+    return res.json({ answer: `${fallback}\n\nThemis could not complete live external research for this request.`, engine: 'institutional-grounded-fallback', sources: [] });
   }
 });
 
@@ -229,10 +265,13 @@ gateway.post('/api/public/analyze', publicLimiter, async (req, res) => {
     jurisdiction: cleanString(req.body?.jurisdiction, 'India', 100),
     riskAppetite: cleanString(req.body?.riskAppetite, 'Conservative', 60),
     department: cleanString(req.body?.department, 'Institutional', 100),
+    institutionName: cleanString(req.body?.institutionName, 'Institution', 200),
+    institutionFunction: cleanString(req.body?.institutionFunction, req.body?.department || 'Enterprise / Institution', 120),
     workType: cleanString(req.body?.workType, 'Review this document', 120),
+    analysisObjective: cleanString(req.body?.analysisObjective, 'Determine what the evidence means, what is affected, what decision is required and what controlled action should follow.', 1000),
     stakeholderLens: cleanString(req.body?.stakeholderLens, 'Organisation and affected stakeholders', 160),
     analysisMode: analysisMode(req.body?.analysisMode),
-    useCurrentSources: booleanValue(req.body?.useCurrentSources),
+    useCurrentSources: true,
     countryCode: cleanString(req.body?.countryCode, 'IN', 2).toUpperCase(),
     city: cleanString(req.body?.city, 'New Delhi', 100),
     region: cleanString(req.body?.region, 'Delhi', 100),
@@ -240,13 +279,59 @@ gateway.post('/api/public/analyze', publicLimiter, async (req, res) => {
   };
 
   try {
-    const analysis = await analyzeDocument({ openai: analysisOpenAI, model: config.openaiModel, text, options });
+    let analysis = await analyzeDocument({ openai: analysisOpenAI, model: activeModel, text, options });
+    let openIntelligence = null;
+
+    if (openai && analysis.analysis_details?.live_ai_used) {
+      try {
+        openIntelligence = await enrichAnalysisWithOpenIntelligence({
+          client: analysisOpenAI,
+          model: activeModel,
+          text,
+          analysis,
+          options
+        });
+        const existingVerification = analysis.source_verification || {};
+        analysis = {
+          ...analysis,
+          external_intelligence: openIntelligence,
+          source_verification: {
+            checked_at: openIntelligence.checked_at,
+            summary: [
+              existingVerification.summary,
+              'THEMIS OPEN INTELLIGENCE',
+              openIntelligence.summary
+            ].filter(Boolean).join('\n\n'),
+            sources: mergeSourceSets(existingVerification.sources, openIntelligence.sources)
+          },
+          analysis_details: {
+            ...analysis.analysis_details,
+            open_intelligence_used: true,
+            external_sources_reviewed: openIntelligence.sources.length,
+            answer_scope: 'uploaded evidence plus current external intelligence'
+          }
+        };
+      } catch (error) {
+        console.error('Themis open-intelligence enrichment failed:', error);
+        analysis = {
+          ...analysis,
+          analysis_details: {
+            ...analysis.analysis_details,
+            open_intelligence_used: false,
+            open_intelligence_failure: String(error.message || 'External research failed').slice(0, 320)
+          }
+        };
+      }
+    }
+
     sendAnalysis(res, analysis, {
       aiConfigured: Boolean(openai),
+      aiProvider: usingAIGateway ? 'vercel-ai-gateway' : directOpenAIKey ? 'openai-direct' : 'not-configured',
       mode: analysis.analysis_details?.mode || options.analysisMode,
       liveAiUsed: Boolean(analysis.analysis_details?.live_ai_used),
+      openIntelligenceUsed: Boolean(analysis.analysis_details?.open_intelligence_used),
       independentPasses: analysis.analysis_details?.independent_passes || 0,
-      currentSourcesRequested: options.useCurrentSources
+      currentSourcesRequested: true
     });
   } catch (error) {
     institutionalFailure(res, error, 'LIVE SYNESIS could not analyse this document.');
@@ -261,21 +346,34 @@ gateway.post('/api/public/ask', publicLimiter, async (req, res) => {
 
   if (!openai) {
     res.set('Cache-Control', 'no-store');
-    return res.json({ answer: fallbackAnswer(analysis, question), engine: 'emergency-analysis-grounded-answer' });
+    return res.json({
+      answer: `${fallbackAnswer(analysis, question)}\n\nLive external intelligence is unavailable because no model provider is configured.`,
+      engine: 'emergency-analysis-grounded-answer',
+      sources: []
+    });
   }
 
   try {
-    const response = await openai.responses.create({
-      model: config.openaiModel,
-      store: false,
-      max_output_tokens: 3500,
-      input: `You are LIVE SYNESIS, an institutional decision intelligence and execution assistant. Answer only from the supplied active-document analysis and its decision model. Distinguish evidence, inference and uncertainty. Do not invent clauses, law, facts or citations. Do not reduce the answer to legal risk alone; address operational, governance, capital, stakeholder, control and execution consequences when supported. Refer to the user organisation as the institution unless the document identifies a more precise role.\n\nQUESTION\n${question}\n\nACTIVE ANALYSIS\n${JSON.stringify(analysis).slice(0, 120000)}`
+    const result = await researchActiveMatter({
+      client: analysisOpenAI,
+      model: activeModel,
+      question,
+      context: analysis,
+      contextLabel: 'ACTIVE DOCUMENT ANALYSIS AND DECISION MODEL',
+      options: researchOptions(req, {
+        jurisdiction: analysis.jurisdiction || 'India'
+      })
     });
     res.set('Cache-Control', 'no-store');
-    res.json({ answer: response.output_text || 'No answer was returned.', engine: 'openai-institutional-grounded-answer' });
+    return res.json(result);
   } catch (error) {
+    console.error('Themis active-matter research fell back:', error);
     res.set('Cache-Control', 'no-store');
-    res.json({ answer: fallbackAnswer(analysis, question), engine: 'emergency-analysis-grounded-answer' });
+    return res.json({
+      answer: `${fallbackAnswer(analysis, question)}\n\nThemis could not complete live external research for this request.`,
+      engine: 'emergency-analysis-grounded-answer',
+      sources: []
+    });
   }
 });
 
