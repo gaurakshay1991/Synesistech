@@ -1,69 +1,49 @@
 import { useEffect, useMemo, useState } from 'react';
 import {
-  Activity, AlertTriangle, ArrowRight, BarChart3, BookOpenCheck, BrainCircuit, BriefcaseBusiness,
-  Building2, CheckCircle2, ChevronRight, CircleAlert, ClipboardCheck, Cpu, Database, Download,
-  FileSearch, FileText, Gauge, History, Landmark, Layers3, LayoutDashboard, LoaderCircle, Menu,
-  Network, PlayCircle, RefreshCw, Scale, Search, Settings2, Shield, ShieldCheck, Sparkles, Target,
-  UploadCloud, Users, WalletCards, X, Zap
+  Activity, AlertTriangle, ArrowLeft, ArrowRight, BarChart3, Building2, CheckCircle2,
+  ChevronRight, CircleAlert, ClipboardCheck, Download, FilePlus2, FileSearch, FileText,
+  Files, GitCompareArrows, Gavel, Landmark, LayoutDashboard, ListChecks, LoaderCircle,
+  Menu, MessageSquareText, Network, Scale, Search, Shield, ShieldCheck, Sparkles,
+  Target, Trash2, UploadCloud, Users, X, Zap
 } from 'lucide-react';
 
 const API = '/api';
-const STATE_KEY = 'synesis-unified-institutional-v1';
-const MEMORY_KEY = 'synesis-unified-memory-v1';
-
-const NAV = [
-  ['command', 'Command centre', LayoutDashboard],
-  ['work', 'Analyse & work', UploadCloud],
-  ['simulation', 'Simulation lab', PlayCircle],
-  ['graph', 'Institutional graph', Network],
-  ['memory', 'Decision memory', History],
-  ['agents', 'Agent studio', BrainCircuit],
-  ['control', 'AI control tower', ShieldCheck]
-];
+const STORAGE_KEY = 'live-synesis-institutional-memory-v4';
+const CONTEXT_KEY = 'live-synesis-institution-context-v4';
 
 const TASKS = [
-  { key: 'agreement', label: 'Review an agreement', detail: 'Rights, obligations, value leakage, negotiation position and operational dependency.', icon: FileSearch, type: 'document' },
-  { key: 'regulation', label: 'Assess regulatory change', detail: 'Obligations, affected controls, owners, remediation and evidence.', icon: Landmark, type: 'regulatory' },
-  { key: 'approval', label: 'Prepare an approval', detail: 'Decision thesis, authority, conditions, dependencies and completion evidence.', icon: ClipboardCheck, type: 'document' },
-  { key: 'incident', label: 'Investigate an incident', detail: 'Fact pattern, affected stakeholders, control failure, response and escalation.', icon: Activity, type: 'document' },
-  { key: 'capital', label: 'Assess capital or mandate risk', detail: 'Portfolio, liquidity, mandate, valuation, conflict and investor-interest implications.', icon: WalletCards, type: 'portfolio' },
-  { key: 'service', label: 'Assess service-provider exposure', detail: 'SLA, concentration, continuity, cyber, exit and contractual remedy.', icon: Building2, type: 'document' },
-  { key: 'cyber', label: 'Assess cyber or data event', detail: 'Data, systems, operations, notifications, stakeholders and recovery.', icon: Cpu, type: 'document' },
-  { key: 'matter', label: 'Open any institutional matter', detail: 'Analyse any institutional document, dataset, event or decision context.', icon: Layers3, type: 'document' }
-];
-
-const ANALYSIS_TYPES = [
-  { key: 'document', label: 'Institutional document', icon: FileText, description: 'Agreement, policy, proposal, incident record, opinion, report or governance material.' },
-  { key: 'portfolio', label: 'Portfolio or exposure CSV', icon: BarChart3, description: 'Holdings, counterparties, business exposures or any weighted institutional dataset.' },
-  { key: 'mandate', label: 'Mandate or restriction document', icon: Target, description: 'Extract testable restrictions and compare with an active uploaded portfolio.' },
-  { key: 'regulatory', label: 'Regulatory or policy update', icon: Landmark, description: 'Map obligations, affected functions, owners, actions and evidence.' }
-];
-
-const SCENARIO_TYPES = [
-  ['regulatory', 'Regulatory change or supervisory action'],
-  ['liquidity', 'Liquidity, redemption or funding stress'],
-  ['cyber', 'Cyber, data or technology incident'],
-  ['counterparty', 'Counterparty, issuer or service-provider failure'],
-  ['contract', 'Contract termination, breach or value leakage'],
-  ['sanctions', 'Sanctions, AML or prohibited-party event'],
-  ['litigation', 'Litigation, enforcement or investigation'],
-  ['governance', 'Governance, authority or conflict event'],
-  ['market', 'Market, valuation or portfolio shock'],
-  ['operational', 'Operational outage or control failure'],
-  ['generic', 'Cross-functional institutional event']
+  { key: 'agreement', label: 'Review an agreement', description: 'Find rights, duties, exposure, leverage, value leakage and negotiation priorities.', icon: FileSearch, documentType: 'Commercial Agreement', matter: 'Contract review' },
+  { key: 'regulation', label: 'Assess a regulatory change', description: 'Map affected obligations, controls, owners, evidence and remediation actions.', icon: Landmark, documentType: 'Regulatory / Policy Document', matter: 'Regulatory change assessment', currentSources: true },
+  { key: 'approval', label: 'Prepare an approval', description: 'Identify the decision, authority, conditions, dependencies and completion evidence.', icon: ClipboardCheck, documentType: 'Board / Governance Document', matter: 'Institutional approval' },
+  { key: 'incident', label: 'Investigate an incident', description: 'Build the issue thesis, affected parties, evidence gaps, control failures and response plan.', icon: Activity, documentType: 'Incident / Investigation Record', matter: 'Incident investigation' },
+  { key: 'capital', label: 'Assess capital or mandate risk', description: 'Test mandate, investor interests, liquidity, valuation, conflicts and decision rationale.', icon: Target, documentType: 'Asset Management / Investment Document', matter: 'Capital and mandate decision' },
+  { key: 'matter', label: 'Open any institutional matter', description: 'Analyse an agreement, policy, opinion, term sheet, report or governance record.', icon: Files, documentType: 'Auto-detect', matter: 'Institutional matter' }
 ];
 
 const FUNCTIONS = [
-  'Investment / Asset Management', 'Risk', 'Compliance', 'Legal', 'Operations', 'Finance / Credit',
-  'Treasury', 'KYC / AML', 'Technology', 'Information Security', 'Data Protection', 'Procurement',
-  'Company Secretariat', 'Board / Trustees', 'Investor / Customer Relations', 'Management'
+  'Enterprise / Institution', 'Legal', 'Compliance', 'Risk', 'Investment / Asset Management',
+  'KYC / AML', 'Operations', 'Governance / Company Secretariat', 'Finance / Credit',
+  'IT / Cybersecurity', 'Procurement', 'Management'
+];
+
+const REVIEW_TABS = [
+  ['brief', 'Decision brief'],
+  ['decision', 'Decision model'],
+  ['risks', 'Risks'],
+  ['obligations', 'Obligations'],
+  ['actions', 'Actions & gates'],
+  ['gaps', 'Gaps'],
+  ['scenarios', 'Scenarios'],
+  ['sources', 'Regulatory & sources'],
+  ['assistant', 'Ask Synesis'],
+  ['report', 'Report']
 ];
 
 function uid() {
   return globalThis.crypto?.randomUUID?.() || `${Date.now()}-${Math.random().toString(16).slice(2)}`;
 }
 
-function readStored(key, fallback) {
+function loadJson(key, fallback) {
   try {
     const value = JSON.parse(localStorage.getItem(key) || 'null');
     return value ?? fallback;
@@ -81,13 +61,11 @@ function formatDate(value) {
   }
 }
 
-function riskClass(value = 'Low') {
-  const normalised = String(value).toLowerCase();
-  if (normalised === 'critical') return 'risk-badge high';
-  return `risk-badge ${normalised}`;
+function riskTone(value = 'Low') {
+  return String(value).toLowerCase().replace(/[^a-z0-9]+/g, '-');
 }
 
-function download(name, value, type = 'application/json') {
+function download(name, value, type = 'text/plain;charset=utf-8') {
   const url = URL.createObjectURL(new Blob([value], { type }));
   const anchor = document.createElement('a');
   anchor.href = url;
@@ -96,17 +74,21 @@ function download(name, value, type = 'application/json') {
   URL.revokeObjectURL(url);
 }
 
+async function readResponse(response) {
+  const text = await response.text();
+  let data = {};
+  try { data = text ? JSON.parse(text) : {}; }
+  catch { data = { error: text || 'Unexpected server response.' }; }
+  if (!response.ok) throw new Error(data.detail || data.error || 'LIVE SYNESIS request failed.');
+  return data;
+}
+
 async function api(path, options = {}) {
   const response = await fetch(`${API}${path}`, {
     ...options,
     headers: { 'Content-Type': 'application/json', ...(options.headers || {}) }
   });
-  const text = await response.text();
-  let data = {};
-  try { data = text ? JSON.parse(text) : {}; }
-  catch { data = { error: text || 'Unexpected response.' }; }
-  if (!response.ok) throw new Error(data.error || data.detail || 'Synesis could not complete this request.');
-  return data;
+  return readResponse(response);
 }
 
 async function extractFileText(file) {
@@ -131,265 +113,325 @@ async function extractFileText(file) {
   return file.text();
 }
 
+function reportText(document) {
+  const analysis = document.analysis || {};
+  const decision = analysis.decision_intelligence || {};
+  const details = analysis.analysis_details || {};
+  const lines = [
+    'LIVE SYNESIS — INSTITUTIONAL DECISION INTELLIGENCE REPORT', '',
+    `Document: ${document.title}`,
+    `Work: ${document.workType}`,
+    `Institutional function: ${document.institutionFunction}`,
+    `Matter: ${document.matter}`,
+    `Document type: ${analysis.document_type || document.documentType}`,
+    `Jurisdiction: ${document.jurisdiction}`,
+    `Overall risk: ${analysis.overall_risk} (${analysis.overall_score}/100)`,
+    `Recommended decision: ${analysis.recommended_decision}`,
+    `Analysis engine: ${analysis.engine}`,
+    `Live AI used: ${details.live_ai_used ? 'Yes' : 'No'}`,
+    `Independent passes: ${details.independent_passes ?? 0}`,
+    `Model: ${details.model || 'Not recorded'}`,
+    `Generated: ${analysis.generated_at || document.updatedAt}`, '',
+    'EXECUTIVE POSITION', analysis.executive_position || '', '',
+    'DOCUMENT SUMMARY', analysis.document_summary || '', '',
+    'INSTITUTIONAL THESIS', decision.institutional_thesis || 'Not generated.', '',
+    'AFFECTED AREAS', ...(decision.affected_areas || []).map(item => `- ${item}`), '',
+    'DECISIONS REQUIRED', ...(decision.decision_questions || []).map(item => `- ${item}`), '',
+    'UNRESOLVED QUESTIONS', ...(decision.unresolved_questions || []).map(item => `- ${item}`), '',
+    'PARTIES AND ENTITIES'
+  ];
+  (decision.parties_and_entities || []).forEach(item => lines.push('', `${item.name} — ${item.role}`, `Interests: ${item.interests}`, `Exposure: ${item.exposure}`));
+  lines.push('', 'OBLIGATIONS');
+  (decision.obligations || []).forEach((item, index) => lines.push('', `${index + 1}. ${item.actor}: ${item.obligation}`, `Trigger: ${item.trigger}`, `Deadline/frequency: ${item.deadline_or_frequency}`, `Evidence: ${item.evidence_required}`, `Consequence: ${item.consequence}`, `Owner: ${item.owner}`));
+  lines.push('', 'ACTION PLAN');
+  (decision.action_plan || []).forEach((item, index) => lines.push('', `${index + 1}. [${item.priority}] ${item.action}`, `Owner: ${item.owner}`, `Approval gate: ${item.approval_gate}`, `Completion evidence: ${item.completion_evidence}`));
+  lines.push('', 'RISKS');
+  (analysis.findings || []).forEach((finding, index) => lines.push('', `${index + 1}. [${finding.risk_level} ${finding.risk_score}/100] ${finding.issue}`, `Reference: ${finding.clause_reference}`, `Evidence: ${finding.quoted_text}`, `Why it matters: ${finding.why_risky_for_bank}`, `How it may occur: ${finding.how_risk_may_materialise}`, `Mitigation: ${finding.recommended_mitigation}`, `Suggested language: ${finding.suggested_rewrite}`, `Owners: ${(finding.review_owner || []).join(', ')}`));
+  lines.push('', 'MISSING PROTECTIONS');
+  (analysis.missing_clauses || []).forEach(item => lines.push('', `[${item.risk_level}] ${item.clause}`, item.why_needed || '', item.recommended_language || ''));
+  lines.push('', 'CONTRADICTIONS');
+  (analysis.contradictions || []).forEach(item => lines.push('', `[${item.risk_level}] ${item.issue}`, `Locations: ${(item.locations || []).join(', ')}`, `Resolution: ${item.resolution}`));
+  lines.push('', 'EVIDENCE GAPS', ...(decision.evidence_gaps || []).map(item => `- ${item}`));
+  lines.push('', 'SCENARIOS');
+  (analysis.scenario_tests || []).forEach(item => lines.push('', `[${item.risk_level}] ${item.title}`, `Trigger: ${item.trigger_from_document}`, `Event: ${item.event}`, `Likely outcome: ${item.likely_outcome}`, `Control: ${item.recommended_control}`));
+  lines.push('', 'CURRENT-SOURCE VERIFICATION', analysis.source_verification?.summary || 'Not requested or unavailable.');
+  (analysis.source_verification?.sources || []).forEach(item => lines.push(`- ${item.title}: ${item.url}`));
+  lines.push('', 'ASSUMPTIONS AND LIMITS', ...(analysis.assumptions_and_limits || []).map(item => `- ${item}`));
+  return lines.join('\n');
+}
+
 export default function InstitutionalApp() {
-  const stored = useMemo(() => readStored(STATE_KEY, {}), []);
-  const initialPage = globalThis.location?.pathname === '/simulation' ? 'simulation' : 'command';
-  const [page, setPage] = useState(initialPage);
+  const [documents, setDocuments] = useState(() => loadJson(STORAGE_KEY, []));
+  const [context, setContext] = useState(() => loadJson(CONTEXT_KEY, { institutionName: 'My Institution', institutionFunction: 'Enterprise / Institution' }));
+  const [page, setPage] = useState('command');
+  const [preset, setPreset] = useState(TASKS[0]);
+  const [activeId, setActiveId] = useState(null);
   const [mobile, setMobile] = useState(false);
-  const [health, setHealth] = useState(null);
   const [notice, setNotice] = useState(null);
-  const [analysisType, setAnalysisType] = useState('document');
-  const [portfolio, setPortfolio] = useState(stored.portfolio || null);
-  const [mandate, setMandate] = useState(stored.mandate || null);
-  const [documentResult, setDocumentResult] = useState(stored.document || null);
-  const [regulatory, setRegulatory] = useState(stored.regulatory || null);
-  const [simulations, setSimulations] = useState(stored.simulations || []);
-  const [recent, setRecent] = useState(stored.recent || []);
-  const [memory, setMemory] = useState(() => readStored(MEMORY_KEY, []));
+  const active = documents.find(item => item.id === activeId) || null;
 
   useEffect(() => {
-    api('/health').then(setHealth).catch(error => setHealth({ ok: false, error: error.message }));
-  }, []);
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(documents)); }
+    catch { setNotice({ type: 'error', message: 'Browser storage is full. Export and remove older matters.' }); }
+  }, [documents]);
 
-  useEffect(() => {
-    localStorage.setItem(STATE_KEY, JSON.stringify({ portfolio, mandate, document: documentResult, regulatory, simulations: simulations.slice(0, 20), recent: recent.slice(0, 40) }));
-  }, [portfolio, mandate, documentResult, regulatory, simulations, recent]);
-
-  useEffect(() => { localStorage.setItem(MEMORY_KEY, JSON.stringify(memory)); }, [memory]);
+  useEffect(() => { localStorage.setItem(CONTEXT_KEY, JSON.stringify(context)); }, [context]);
   useEffect(() => {
     if (!notice) return undefined;
-    const timer = setTimeout(() => setNotice(null), 7000);
+    const timer = setTimeout(() => setNotice(null), 7500);
     return () => clearTimeout(timer);
   }, [notice]);
 
-  const context = useMemo(() => ({ portfolio, mandate, document: documentResult, regulatory }), [portfolio, mandate, documentResult, regulatory]);
-  const activeSimulation = simulations[0] || null;
-
-  const attention = useMemo(() => {
-    const items = [];
-    (documentResult?.findings || []).slice(0, 5).forEach(item => items.push({
-      severity: item.severity || item.risk_level || 'Medium',
-      area: item.category || 'Institutional document',
-      title: item.title || item.issue,
-      action: item.action || item.recommended_mitigation,
-      source: documentResult.title
-    }));
-    (portfolio?.flags || []).slice(0, 5).forEach(item => items.push({ severity: item.severity, area: item.category, title: item.title, action: item.action, source: portfolio.title }));
-    (mandate?.tests || []).filter(item => item.status === 'Breach').forEach(item => items.push({ severity: 'High', area: 'Mandate breach', title: `${item.label}: ${item.actual}% against ${item.limit}%`, action: item.explanation, source: mandate.title }));
-    (regulatory?.action_plan || []).filter(item => item.priority === 'Immediate').slice(0, 4).forEach(item => items.push({ severity: 'Medium', area: 'Regulatory action', title: item.action, action: `Owner: ${item.owner}`, source: regulatory.title }));
-    (activeSimulation?.actions || []).filter(item => item.priority === 'Immediate').slice(0, 3).forEach(item => items.push({ severity: activeSimulation.overall_level === 'Critical' ? 'High' : 'Medium', area: 'Simulation action', title: item.action, action: `Approval: ${item.approval_gate}`, source: activeSimulation.title }));
-    return items.slice(0, 14);
-  }, [documentResult, portfolio, mandate, regulatory, activeSimulation]);
-
-  function navigate(next) {
-    setPage(next);
-    setMobile(false);
-    const path = next === 'simulation' ? '/simulation' : '/';
-    if (globalThis.location?.pathname !== path) globalThis.history?.replaceState({}, '', path);
+  function navigate(next) { setPage(next); setMobile(false); }
+  function start(task) { setPreset(task); navigate('new'); }
+  function open(id) { setActiveId(id); navigate('review'); }
+  function save(document) {
+    setDocuments(current => [document, ...current.filter(item => item.id !== document.id)]);
+    setActiveId(document.id);
+    setPage('review');
+    const live = document.analysis?.analysis_details?.live_ai_used;
+    setNotice({ type: live ? 'success' : 'error', message: live ? `Deep analysis completed using ${document.analysis.analysis_details.independent_passes} reasoning pass(es).` : 'Live AI analysis failed. The saved result is an emergency fallback and is not a completed Synesis analysis.' });
+  }
+  function remove(id) {
+    if (!window.confirm('Delete this matter from browser memory?')) return;
+    setDocuments(current => current.filter(item => item.id !== id));
+    if (activeId === id) { setActiveId(null); navigate('memory'); }
   }
 
-  function startTask(task) {
-    setAnalysisType(task.type);
-    navigate(task.type === 'portfolio' ? 'work' : 'work');
-  }
+  const titles = {
+    command: 'Decision Command Centre', new: preset.label, memory: 'Institutional Memory',
+    compare: 'Compare Decisions', review: active?.title || 'Decision Workspace'
+  };
 
-  function saveAnalysis(type, result) {
-    if (type === 'document') setDocumentResult(result);
-    if (type === 'portfolio') setPortfolio(result);
-    if (type === 'mandate') setMandate(result);
-    if (type === 'regulatory') setRegulatory(result);
-    setRecent(current => [{ id: uid(), type, title: result.title, risk: result.overall_risk || (result.breach_count ? 'High' : 'Low'), at: result.generated_at }, ...current]);
-    setNotice({ type: 'success', message: `${result.title} was generated from the newly supplied source.` });
-  }
-
-  function resetPrototype() {
-    localStorage.removeItem(STATE_KEY);
-    localStorage.removeItem(MEMORY_KEY);
-    setPortfolio(null);
-    setMandate(null);
-    setDocumentResult(null);
-    setRegulatory(null);
-    setSimulations([]);
-    setRecent([]);
-    setMemory([]);
-    navigate('command');
-    setNotice({ type: 'success', message: 'Prototype data was reset.' });
-  }
-
-  const title = NAV.find(item => item[0] === page)?.[1] || 'Synesis';
-
-  return (
-    <div className="institutional-shell">
-      {mobile && <button className="screen-scrim" onClick={() => setMobile(false)} aria-label="Close navigation" />}
-      <aside className={`institutional-sidebar ${mobile ? 'open' : ''}`}>
-        <div className="brand-row">
-          <div className="brand-mark">S</div>
-          <div><strong>SYNESIS</strong><small>Institutional Intelligence</small></div>
-          <button className="mobile-close" onClick={() => setMobile(false)}><X size={19} /></button>
-        </div>
-        <div className="client-chip"><BriefcaseBusiness size={18} /><div><small>PLATFORM CATEGORY</small><strong>Decision intelligence and execution</strong></div></div>
-        <nav>{NAV.map(([key, label, Icon]) => <button key={key} className={page === key ? 'active' : ''} onClick={() => navigate(key)}><Icon size={19} /><span>{label}</span><ChevronRight size={15} /></button>)}</nav>
-        <div className="sidebar-status">
-          <p><span className={health?.ok ? 'status-dot live' : 'status-dot'} /><strong>{health?.ok ? 'Platform reachable' : 'Checking platform'}</strong></p>
-          <small>{health?.activeEngines?.length || 0} institutional engines · {health?.aiConfigured ? `AI configured (${health.model})` : 'AI unavailable; deterministic engines active'}</small>
-          <button onClick={resetPrototype}><RefreshCw size={15} />Reset prototype</button>
-        </div>
-      </aside>
-
-      <section className="institutional-main">
-        <header className="institutional-topbar">
-          <button className="menu-button" onClick={() => setMobile(true)}><Menu size={22} /></button>
-          <div><h1>{title}</h1><p>Capital · contracts · risk · regulation · governance · operations · evidence</p></div>
-          <button className="primary-button compact" onClick={() => navigate('work')}><Zap size={16} />Start work</button>
-        </header>
-
-        {notice && <button className={`notice ${notice.type}`} onClick={() => setNotice(null)}>{notice.type === 'error' ? <CircleAlert size={18} /> : <CheckCircle2 size={18} />}<span>{notice.message}</span><X size={16} /></button>}
-
-        <main className="institutional-page">
-          {page === 'command' && <CommandCentre attention={attention} context={context} simulation={activeSimulation} recent={recent} health={health} startTask={startTask} navigate={navigate} />}
-          {page === 'work' && <WorkStudio initialType={analysisType} setInitialType={setAnalysisType} context={context} saveAnalysis={saveAnalysis} notify={setNotice} />}
-          {page === 'simulation' && <SimulationLab context={context} simulations={simulations} setSimulations={setSimulations} notify={setNotice} />}
-          {page === 'graph' && <InstitutionalGraph context={context} simulation={activeSimulation} navigate={navigate} />}
-          {page === 'memory' && <DecisionMemory memory={memory} setMemory={setMemory} recent={recent} simulations={simulations} context={context} />}
-          {page === 'agents' && <AgentStudio context={context} />}
-          {page === 'control' && <ControlTower health={health} recent={recent} simulations={simulations} />}
-        </main>
-      </section>
-    </div>
-  );
-}
-
-function CommandCentre({ attention, context, simulation, recent, health, startTask, navigate }) {
-  const activeContext = [context.document, context.portfolio, context.mandate, context.regulatory].filter(Boolean).length;
-  return <div className="page-stack">
-    <section className="command-hero"><div><span className="eyebrow">UNIFIED INSTITUTIONAL OPERATING LAYER</span><h2>Start with the decision, not the department.</h2><p>Synesis connects documents, data, obligations, entities, controls, evidence, capital and institutional memory. Asset management is one solution pack within a wider platform for banks, NBFCs, funds, insurers, corporates and regulated teams.</p><div className="hero-actions"><button className="light-button" onClick={() => navigate('work')}><UploadCloud size={18} />Upload and analyse</button><button className="ghost-button" onClick={() => navigate('simulation')}><PlayCircle size={18} />Run a simulation</button></div></div><div className="hero-orbit"><Network size={50} /><span>Connected institutional context</span></div></section>
-    <section className="metric-grid"><Metric icon={Gauge} label="Attention items" value={attention.length} sub="Across all active contexts" /><Metric icon={Database} label="Connected contexts" value={activeContext} sub="Document, portfolio, mandate, regulation" /><Metric icon={PlayCircle} label="Latest simulation" value={simulation ? `${simulation.overall_score}/100` : 'Not run'} sub={simulation?.overall_level || 'No scenario yet'} /><Metric icon={Activity} label="Platform status" value={health?.ok ? 'Live' : 'Check'} sub={`${health?.activeEngines?.length || 0} engines reported`} /></section>
-    <section className="panel"><PanelHeader title="What do you need to do?" subtitle="One platform, multiple institutional work types" /><div className="task-grid">{TASKS.map(task => <button key={task.key} onClick={() => startTask(task)}><span><task.icon size={22} /></span><div><strong>{task.label}</strong><small>{task.detail}</small></div><ArrowRight size={17} /></button>)}</div></section>
-    <section className="content-grid two-one"><article className="panel"><PanelHeader title="What needs attention" subtitle="Evidence-linked items from active analyses and simulations" />{attention.length ? attention.map((item, index) => <div className="attention-item" key={`${item.title}-${index}`}><span className={riskClass(item.severity)}>{item.severity}</span><div><small>{item.area} · {item.source}</small><strong>{item.title}</strong><p>{item.action}</p></div><ChevronRight size={17} /></div>) : <Empty title="No active attention item" text="Upload institutional material or run a simulation." />}</article><aside className="panel"><PanelHeader title="Active context" subtitle="Used by simulations and grounded analysis" /><ContextRow icon={FileText} label="Institutional document" value={context.document?.title || 'Not loaded'} /><ContextRow icon={WalletCards} label="Portfolio / exposure data" value={context.portfolio?.title || 'Not loaded'} /><ContextRow icon={Target} label="Mandate / restrictions" value={context.mandate?.title || 'Not loaded'} /><ContextRow icon={Landmark} label="Regulatory update" value={context.regulatory?.title || 'Not loaded'} /><button className="secondary-button wide" onClick={() => navigate('work')}>Update context<ArrowRight size={16} /></button></aside></section>
-    <section className="content-grid equal"><article className="panel"><PanelHeader title="Latest simulation" subtitle="Cross-functional scenario result" action={<button className="text-button" onClick={() => navigate('simulation')}>Open lab<ArrowRight size={15} /></button>} />{simulation ? <><div className="simulation-summary-mini"><span className={riskClass(simulation.overall_level)}>{simulation.overall_level}</span><h3>{simulation.title}</h3><p>{simulation.executive_position}</p><dl><div><dt>Score</dt><dd>{simulation.overall_score}/100</dd></div><div><dt>Context lift</dt><dd>{simulation.context_used?.context_risk_lift || 0}</dd></div><div><dt>Immediate gates</dt><dd>{simulation.actions?.filter(item => item.priority === 'Immediate').length || 0}</dd></div></dl></div></> : <Empty title="No simulation yet" text="Model a regulatory, market, cyber, sanctions, contractual, governance or operational event." />}</article><article className="panel"><PanelHeader title="Recent activity" subtitle="Public prototype records stored in this browser" />{recent.length ? recent.slice(0, 7).map(item => <div className="recent-row" key={item.id}><span className={riskClass(item.risk || 'Low')}>{item.risk || 'Info'}</span><div><strong>{item.title}</strong><small>{item.type} · {formatDate(item.at)}</small></div></div>) : <Empty title="No user analysis yet" text="Start with any institutional task." />}</article></section>
+  return <div className="inst-shell">
+    {mobile && <button className="inst-scrim" onClick={() => setMobile(false)} aria-label="Close navigation" />}
+    <aside className={`inst-sidebar ${mobile ? 'open' : ''}`}>
+      <div className="inst-brand"><span>LS</span><div><strong>LIVE SYNESIS</strong><small>Institutional Intelligence & Execution</small></div><button onClick={() => setMobile(false)}><X size={19} /></button></div>
+      <nav>
+        {[
+          ['command', 'Command centre', LayoutDashboard], ['new', 'Start work', FilePlus2],
+          ['memory', 'Decision memory', Network], ['compare', 'Compare', GitCompareArrows]
+        ].map(([key, label, Icon]) => <button key={key} className={page === key ? 'active' : ''} onClick={() => navigate(key)}><Icon size={18} /><span>{label}</span><ChevronRight size={15} /></button>)}
+      </nav>
+      <div className="inst-context">
+        <small>ACTIVE CONTEXT</small>
+        <input value={context.institutionName} onChange={event => setContext({ ...context, institutionName: event.target.value })} aria-label="Institution name" />
+        <select value={context.institutionFunction} onChange={event => setContext({ ...context, institutionFunction: event.target.value })}>{FUNCTIONS.map(item => <option key={item}>{item}</option>)}</select>
+      </div>
+      <div className="inst-sidebar-note"><ShieldCheck size={17} /><div><strong>Governed by design</strong><small>High-risk actions remain subject to authorised approval.</small></div></div>
+    </aside>
+    <section className="inst-main">
+      <header className="inst-topbar">
+        <button className="inst-menu" onClick={() => setMobile(true)}><Menu size={21} /></button>
+        <div><h1>{titles[page]}</h1><p>{context.institutionName} · {context.institutionFunction}</p></div>
+        <button className="inst-primary compact" onClick={() => start(TASKS[5])}><Zap size={16} />Start work</button>
+      </header>
+      {notice && <button className={`inst-toast ${notice.type}`} onClick={() => setNotice(null)}>{notice.type === 'error' ? <CircleAlert size={18} /> : <CheckCircle2 size={18} />}<span>{notice.message}</span><X size={15} /></button>}
+      <main className="inst-page">
+        {page === 'command' && <CommandCentre documents={documents} start={start} open={open} />}
+        {page === 'new' && <NewWork preset={preset} context={context} save={save} notify={setNotice} />}
+        {page === 'memory' && <Memory documents={documents} open={open} remove={remove} />}
+        {page === 'compare' && <Compare documents={documents} />}
+        {page === 'review' && <DecisionWorkspace document={active} remove={remove} navigate={navigate} />}
+      </main>
+    </section>
   </div>;
 }
 
-function WorkStudio({ initialType, setInitialType, context, saveAnalysis, notify }) {
-  const [type, setType] = useState(initialType || 'document');
+function CommandCentre({ documents, start, open }) {
+  const decisions = documents.reduce((sum, item) => sum + (item.analysis?.decision_intelligence?.decision_questions?.length || 0), 0);
+  const actions = documents.reduce((sum, item) => sum + (item.analysis?.decision_intelligence?.action_plan?.length || 0), 0);
+  const high = documents.filter(item => item.analysis?.overall_risk === 'High').length;
+  return <div className="inst-stack">
+    <section className="inst-hero"><div><small>INSTITUTIONAL DECISION INTELLIGENCE</small><h2>What requires a decision, action or proof of completion?</h2><p>Start with the work. Synesis reads the evidence, connects risk and obligation, identifies who is affected, builds the approval path and records the institutional decision.</p></div><Sparkles size={46} /></section>
+    <section className="inst-task-grid">{TASKS.map(task => <button key={task.key} onClick={() => start(task)}><span><task.icon size={23} /></span><div><strong>{task.label}</strong><p>{task.description}</p></div><ArrowRight size={18} /></button>)}</section>
+    <section className="inst-metrics">{[
+      ['Matters analysed', documents.length, Files], ['High-risk matters', high, AlertTriangle],
+      ['Decisions surfaced', decisions, Gavel], ['Controlled actions', actions, ListChecks]
+    ].map(([label, value, Icon]) => <div key={label}><span><Icon size={20} /></span><strong>{value}</strong><small>{label}</small></div>)}</section>
+    <section className="inst-card"><CardHeader title="What requires attention" subtitle="Recent matters and their current decision posture" />
+      {documents.length ? <div className="inst-list">{documents.slice(0, 8).map(item => <button key={item.id} onClick={() => open(item.id)}><RiskBadge risk={item.analysis?.overall_risk} score={item.analysis?.overall_score} /><span><strong>{item.title}</strong><small>{item.workType} · {formatDate(item.updatedAt)}</small></span><StatusPill live={item.analysis?.analysis_details?.live_ai_used} /><ChevronRight size={17} /></button>)}</div> : <Empty title="No institutional matters analysed" text="Choose a task above and upload the evidence that requires a decision." />}
+    </section>
+  </div>;
+}
+
+function NewWork({ preset, context, save, notify }) {
   const [file, setFile] = useState(null);
-  const [title, setTitle] = useState('');
   const [text, setText] = useState('');
   const [busy, setBusy] = useState(false);
-  const [stage, setStage] = useState(0);
-  const stages = type === 'portfolio' ? ['Read dataset', 'Normalise rows', 'Calculate exposures', 'Run liquidity scenarios', 'Generate attention items'] : ['Read source', 'Classify evidence', 'Extract institutional signals', 'Map decisions and actions', 'Generate result'];
+  const [phase, setPhase] = useState(0);
+  const [form, setForm] = useState(() => ({
+    workType: preset.label, title: '', matter: preset.matter, documentType: preset.documentType,
+    jurisdiction: 'India', stakeholderLens: 'Institution, customers/investors, regulators and affected operations',
+    riskAppetite: 'Conservative', analysisMode: 'deep', useCurrentSources: Boolean(preset.currentSources),
+    institutionFunction: context.institutionFunction
+  }));
 
-  useEffect(() => { setType(initialType || 'document'); }, [initialType]);
-  useEffect(() => { setInitialType(type); setFile(null); setTitle(''); setText(''); setStage(0); }, [type, setInitialType]);
-  useEffect(() => { if (!busy) return undefined; const timer = setInterval(() => setStage(current => Math.min(stages.length - 1, current + 1)), 800); return () => clearInterval(timer); }, [busy, stages.length]);
+  useEffect(() => {
+    setForm(current => ({ ...current, workType: preset.label, matter: preset.matter, documentType: preset.documentType, useCurrentSources: Boolean(preset.currentSources) }));
+  }, [preset.key]);
 
   async function selectFile(selected) {
     if (!selected) return;
-    const allowed = type === 'portfolio' ? /\.(csv|txt)$/i : /\.(pdf|docx|txt|csv|json|md|xml)$/i;
-    if (!allowed.test(selected.name)) return notify({ type: 'error', message: type === 'portfolio' ? 'Use a CSV or text dataset.' : 'Use PDF, DOCX, TXT, CSV, JSON, Markdown or XML.' });
+    if (!/\.(pdf|docx|txt|csv|json|md|xml)$/i.test(selected.name)) return notify({ type: 'error', message: 'Use PDF, DOCX, TXT, CSV, JSON, Markdown or XML.' });
     setBusy(true);
     try {
       const extracted = await extractFileText(selected);
-      if (extracted.trim().length < 20) throw new Error('The file does not contain enough readable content.');
-      setFile(selected); setText(extracted.slice(0, type === 'portfolio' ? 600000 : 180000)); setTitle(selected.name.replace(/\.[^.]+$/, ''));
-      notify({ type: 'success', message: `${selected.name} was read from the uploaded source.` });
-    } catch (error) { notify({ type: 'error', message: error.message }); }
-    finally { setBusy(false); setStage(0); }
+      if (extracted.trim().length < 20) throw new Error('The file did not contain enough readable text. Paste text for scanned documents.');
+      setFile(selected);
+      setText(extracted.slice(0, 180000));
+      setForm(current => ({ ...current, title: current.title || selected.name.replace(/\.[^.]+$/, '') }));
+      notify({ type: 'success', message: `${selected.name} was extracted and is ready for analysis.` });
+    } catch (error) { notify({ type: 'error', message: error.message || 'The document could not be read.' }); }
+    finally { setBusy(false); }
   }
 
   async function submit(event) {
     event.preventDefault();
-    if (text.trim().length < 20) return notify({ type: 'error', message: 'Upload a file or paste enough source content.' });
-    setBusy(true); setStage(0);
+    if (text.trim().length < 20) return notify({ type: 'error', message: 'Upload a document or paste enough readable evidence.' });
+    setBusy(true); setPhase(1);
+    const timer = setInterval(() => setPhase(current => Math.min(5, current + 1)), 3000);
     try {
-      const payload = { title: title || file?.name || `New ${type} analysis`, text };
-      if (type === 'mandate') payload.portfolio = context.portfolio;
-      const result = await api(`/public/institutional/${type}`, { method: 'POST', body: JSON.stringify(payload) });
-      saveAnalysis(type, result.analysis);
+      const title = form.title || file?.name.replace(/\.[^.]+$/, '') || 'Untitled matter';
+      const result = await api('/public/analyze', {
+        method: 'POST',
+        body: JSON.stringify({
+          ...form, title, fileName: file?.name || '', department: form.institutionFunction,
+          text: text.slice(0, 180000), countryCode: 'IN', city: 'New Delhi', region: 'Delhi', timezone: 'Asia/Kolkata'
+        })
+      });
+      const now = new Date().toISOString();
+      save({ id: uid(), ...form, title, institutionName: context.institutionName, originalFileName: file?.name || '', analysis: result.analysis, processing: result.processing, status: result.analysis?.analysis_details?.live_ai_used ? 'Analysis Complete' : 'Fallback — Review Incomplete', createdAt: now, updatedAt: now });
     } catch (error) { notify({ type: 'error', message: error.message }); }
-    finally { setBusy(false); setStage(0); }
+    finally { clearInterval(timer); setBusy(false); }
   }
 
-  return <div className="analysis-layout"><section className="panel analysis-form-panel"><PanelHeader title="Analyse live institutional material" subtitle="The output is generated from the newly supplied source, not from stored sample answers" /><div className="analysis-type-grid">{ANALYSIS_TYPES.map(item => <button key={item.key} className={type === item.key ? 'active' : ''} onClick={() => setType(item.key)}><item.icon size={22} /><div><strong>{item.label}</strong><small>{item.description}</small></div><ChevronRight size={17} /></button>)}</div><form onSubmit={submit}><label className="file-drop"><input type="file" accept={type === 'portfolio' ? '.csv,.txt' : '.pdf,.docx,.txt,.csv,.json,.md,.xml'} onChange={event => selectFile(event.target.files?.[0])} /><UploadCloud size={32} /><strong>{file?.name || 'Choose or drop a source'}</strong><small>{type === 'portfolio' ? 'Use weights or market values. Optional sector, rating and liquidity fields improve analysis.' : 'The extracted source remains visible before analysis.'}</small></label><label className="field-label">Analysis title<input value={title} onChange={event => setTitle(event.target.value)} /></label><label className="field-label">Extracted source<textarea rows="14" value={text} onChange={event => setText(event.target.value)} placeholder={type === 'portfolio' ? 'issuer,security,sector,asset_class,market_value,weight,rating,liquidity_days' : 'Paste institutional source text…'} /></label><button className="primary-button wide" disabled={busy}>{busy ? <><LoaderCircle className="spin" size={18} />Processing source…</> : <><Sparkles size={18} />Run live analysis</>}</button></form></section><aside className="panel live-progress-panel"><PanelHeader title="Live processing" subtitle="Visible source-bound stages" /><div className="progress-list">{stages.map((label, index) => <div key={label} className={busy && index <= stage ? 'active' : index === 0 && text ? 'ready' : ''}><span>{busy && index === stage ? <LoaderCircle className="spin" size={16} /> : index < stage ? <CheckCircle2 size={16} /> : index + 1}</span><p><strong>{label}</strong><small>{index < stage ? 'Completed' : busy && index === stage ? 'In progress' : 'Pending'}</small></p></div>)}</div><div className="boundary-note"><ShieldCheck size={18} /><p><strong>Evidence boundary</strong><span>Source facts, calculations, inferences and missing data are kept distinct.</span></p></div>{type === 'mandate' && <div className="context-warning"><Target size={18} /><p><strong>{context.portfolio ? 'Active portfolio linked' : 'No portfolio linked'}</strong><span>{context.portfolio?.title || 'Upload portfolio data first to test extracted restrictions.'}</span></p></div>}</aside></div>;
+  const phases = ['Securely reading evidence', 'Primary institutional analysis', 'Decision and obligation modelling', 'Independent challenge review', 'Reconciling findings', 'Preparing action record'];
+  return <div className="inst-new-grid">
+    <form className="inst-card inst-form" onSubmit={submit}>
+      <CardHeader title="1. Add the evidence" subtitle="The uploaded document controls the analysis; no fixed answer library is used for the primary result." />
+      <label className="inst-drop"><input type="file" accept=".pdf,.docx,.txt,.csv,.json,.md,.xml" onChange={event => selectFile(event.target.files?.[0])} /><UploadCloud size={30} /><strong>{file?.name || 'Choose a document'}</strong><small>{file ? 'Text extracted below' : 'PDF, DOCX, TXT, CSV, JSON, MD or XML · up to the public workspace limit'}</small></label>
+      <textarea rows="11" value={text} onChange={event => setText(event.target.value)} placeholder="Paste an agreement, circular, policy, approval note, mandate, incident record, opinion, term sheet or other institutional evidence…" />
+      <CardHeader title="2. Define the decision context" subtitle="Context calibrates the analysis but cannot override the evidence." />
+      <div className="inst-fields">
+        <label>Work type<select value={form.workType} onChange={event => setForm({ ...form, workType: event.target.value })}>{TASKS.map(item => <option key={item.key}>{item.label}</option>)}</select></label>
+        <label>Title<input value={form.title} onChange={event => setForm({ ...form, title: event.target.value })} /></label>
+        <label>Matter<input value={form.matter} onChange={event => setForm({ ...form, matter: event.target.value })} /></label>
+        <label>Institutional function<select value={form.institutionFunction} onChange={event => setForm({ ...form, institutionFunction: event.target.value })}>{FUNCTIONS.map(item => <option key={item}>{item}</option>)}</select></label>
+        <label>Document type<select value={form.documentType} onChange={event => setForm({ ...form, documentType: event.target.value })}>{['Auto-detect','Commercial Agreement','Vendor / Outsourcing Agreement','NDA / Confidentiality Agreement','Finance Agreement','Asset Management / Investment Document','Regulatory / Policy Document','Board / Governance Document','Incident / Investigation Record','Legal Opinion','Term Sheet'].map(item => <option key={item}>{item}</option>)}</select></label>
+        <label>Jurisdiction<input value={form.jurisdiction} onChange={event => setForm({ ...form, jurisdiction: event.target.value })} /></label>
+        <label>Risk appetite<select value={form.riskAppetite} onChange={event => setForm({ ...form, riskAppetite: event.target.value })}><option>Conservative</option><option>Balanced</option><option>Commercial</option></select></label>
+        <label>Analysis depth<select value={form.analysisMode} onChange={event => setForm({ ...form, analysisMode: event.target.value })}><option value="deep">Deep — primary + decision + challenge</option><option value="standard">Standard — primary + decision</option><option value="quick">Quick — primary analysis</option></select></label>
+        <label className="wide">Stakeholder lens<input value={form.stakeholderLens} onChange={event => setForm({ ...form, stakeholderLens: event.target.value })} /></label>
+        <label className="inst-check wide"><input type="checkbox" checked={form.useCurrentSources} onChange={event => setForm({ ...form, useCurrentSources: event.target.checked })} /><span><strong>Verify current regulatory propositions</strong><small>Runs a separate current-source check after document analysis; official and primary sources are preferred.</small></span></label>
+      </div>
+      <button className="inst-primary wide large" disabled={busy}>{busy ? <><LoaderCircle className="spin" size={18} />Running institutional analysis…</> : <><Sparkles size={18} />Analyse and build decision path</>}</button>
+    </form>
+    <aside className="inst-analysis-side">
+      <section className="inst-card"><CardHeader title="What Synesis will determine" subtitle="Not merely a clause checklist" />{['What the document means institutionally','Who and what are affected','Rights, duties, triggers and deadlines','Material risks and value leakage','Decisions and unresolved questions','Dependencies and failure paths','Actions, owners and approval gates','Completion evidence and stakeholder impact'].map((item, index) => <div className="inst-guide-row" key={item}><span>{index + 1}</span><p>{item}</p></div>)}</section>
+      {busy && <section className="inst-card inst-progress"><small>LIVE MULTIPASS ANALYSIS</small>{phases.map((item, index) => <div key={item} className={phase > index ? 'done' : phase === index + 1 ? 'current' : ''}>{phase > index ? <CheckCircle2 size={16} /> : <Activity size={16} />}<p>{item}</p></div>)}</section>}
+      <section className="inst-card inst-boundary"><Shield size={20} /><div><strong>Controlled, not autonomous</strong><p>Synesis recommends action and approval gates. It does not execute high-risk legal, regulatory, investment or customer actions without authorised approval.</p></div></section>
+    </aside>
+  </div>;
 }
 
-function SimulationLab({ context, simulations, setSimulations, notify }) {
-  const [form, setForm] = useState({ scenarioType: 'regulatory', title: 'Regulatory change affecting multiple institutional functions', probability: 3, severity: 4, speed: 3, durationDays: 30, controlStrength: 2, financialExposure: '', trigger: '', affectedFunctions: ['Risk', 'Compliance', 'Operations', 'Management'], controlsText: '' });
-  const [busy, setBusy] = useState(false);
-  const [variantIndex, setVariantIndex] = useState(1);
-  const simulation = simulations[0] || null;
-  const variant = simulation?.variants?.[variantIndex];
+function Memory({ documents, open, remove }) {
+  const [query, setQuery] = useState('');
+  const [risk, setRisk] = useState('All');
+  const filtered = useMemo(() => documents.filter(item => {
+    const match = `${item.title} ${item.matter} ${item.workType} ${item.documentType}`.toLowerCase().includes(query.toLowerCase());
+    return match && (risk === 'All' || item.analysis?.overall_risk === risk);
+  }), [documents, query, risk]);
+  return <section className="inst-card"><CardHeader title="Institutional decision memory" subtitle="Reopen the evidence, analysis provenance, decisions and action path." action={<div className="inst-memory-tools"><label><Search size={16} /><input value={query} onChange={event => setQuery(event.target.value)} placeholder="Search matters" /></label><select value={risk} onChange={event => setRisk(event.target.value)}><option>All</option><option>High</option><option>Medium</option><option>Low</option></select></div>} />
+    {filtered.length ? <div className="inst-table">{filtered.map(item => <div key={item.id}><button onClick={() => open(item.id)}><RiskBadge risk={item.analysis?.overall_risk} score={item.analysis?.overall_score} /><span><strong>{item.title}</strong><small>{item.workType} · {item.matter}</small></span><StatusPill live={item.analysis?.analysis_details?.live_ai_used} /><small>{formatDate(item.updatedAt)}</small><ChevronRight size={17} /></button><button className="inst-delete" onClick={() => remove(item.id)} aria-label="Delete"><Trash2 size={16} /></button></div>)}</div> : <Empty title="No matching matters" text="Start a new institutional analysis or change the filters." />}
+  </section>;
+}
 
-  function toggleFunction(value) {
-    setForm(current => ({ ...current, affectedFunctions: current.affectedFunctions.includes(value) ? current.affectedFunctions.filter(item => item !== value) : [...current.affectedFunctions, value] }));
+function Compare({ documents }) {
+  const [left, setLeft] = useState(documents[0]?.id || '');
+  const [right, setRight] = useState(documents[1]?.id || '');
+  const a = documents.find(item => item.id === left);
+  const b = documents.find(item => item.id === right);
+  if (documents.length < 2) return <Empty title="Two analysed matters are required" text="Complete at least two analyses before comparison." />;
+  const delta = a && b ? a.analysis.overall_score - b.analysis.overall_score : 0;
+  return <div className="inst-stack"><section className="inst-card"><CardHeader title="Compare institutional decisions" subtitle="Risk, decisions, obligations, actions and analysis provenance" /><div className="inst-compare-select"><select value={left} onChange={event => setLeft(event.target.value)}>{documents.map(item => <option key={item.id} value={item.id}>{item.title}</option>)}</select><GitCompareArrows size={24} /><select value={right} onChange={event => setRight(event.target.value)}>{documents.map(item => <option key={item.id} value={item.id}>{item.title}</option>)}</select></div></section>{a && b && <section className="inst-compare-grid"><CompareCard document={a} /><div className="inst-delta"><strong>{Math.abs(delta)}</strong><small>risk-score difference</small><p>{delta === 0 ? 'Equivalent numerical risk; compare the decision models.' : delta > 0 ? `${a.title} is higher risk.` : `${b.title} is higher risk.`}</p></div><CompareCard document={b} /></section>}</div>;
+}
+
+function CompareCard({ document }) {
+  const a = document.analysis || {};
+  const d = a.decision_intelligence || {};
+  return <article className="inst-card"><RiskBadge risk={a.overall_risk} score={a.overall_score} /><h2>{document.title}</h2><p>{a.executive_position}</p><dl><div><dt>Findings</dt><dd>{a.findings?.length || 0}</dd></div><div><dt>Decisions</dt><dd>{d.decision_questions?.length || 0}</dd></div><div><dt>Obligations</dt><dd>{d.obligations?.length || 0}</dd></div><div><dt>Actions</dt><dd>{d.action_plan?.length || 0}</dd></div><div><dt>Decision</dt><dd>{a.recommended_decision}</dd></div><div><dt>Analysis</dt><dd>{a.analysis_details?.live_ai_used ? `${a.analysis_details.independent_passes} live passes` : 'Fallback'}</dd></div></dl></article>;
+}
+
+function DecisionWorkspace({ document, remove, navigate }) {
+  const [tab, setTab] = useState('brief');
+  const [selected, setSelected] = useState(0);
+  const [question, setQuestion] = useState('What decision must be made now, by whom, and what evidence is required before action?');
+  const [answer, setAnswer] = useState('');
+  const [asking, setAsking] = useState(false);
+  if (!document) return <Empty title="No active matter" text="Open Decision Memory or start new work." />;
+  const analysis = document.analysis || {};
+  const decision = analysis.decision_intelligence || {};
+  const finding = analysis.findings?.[selected];
+  const live = analysis.analysis_details?.live_ai_used;
+
+  async function ask() {
+    setAsking(true); setAnswer('');
+    try { setAnswer((await api('/public/ask', { method: 'POST', body: JSON.stringify({ question, analysis }) })).answer); }
+    catch (error) { setAnswer(error.message); }
+    finally { setAsking(false); }
   }
 
-  async function run(event) {
-    event.preventDefault();
-    setBusy(true);
-    try {
-      const payload = { ...form, financialExposure: Number(form.financialExposure || 0), controls: form.controlsText.split('\n').map(item => item.trim()).filter(Boolean), context };
-      const result = await api('/public/institutional/simulate', { method: 'POST', body: JSON.stringify(payload) });
-      setSimulations(current => [result.analysis, ...current].slice(0, 20));
-      setVariantIndex(1);
-      notify({ type: 'success', message: `Simulation completed: ${result.analysis.overall_level} adverse-case impact.` });
-    } catch (error) { notify({ type: 'error', message: error.message }); }
-    finally { setBusy(false); }
-  }
+  return <div className="inst-stack">
+    {!live && <section className="inst-fallback-warning"><CircleAlert size={23} /><div><strong>This is not a completed LIVE SYNESIS analysis.</strong><p>The live reasoning pipeline failed or was unavailable. The displayed result is an emergency deterministic fallback. Reanalyse after restoring the API connection before relying on it.</p><small>{analysis.analysis_details?.failure}</small></div></section>}
+    <section className="inst-review-head"><button onClick={() => navigate('memory')}><ArrowLeft size={16} />Memory</button><div><RiskBadge risk={analysis.overall_risk} score={analysis.overall_score} /><h2>{document.title}</h2><p>{document.workType} · {analysis.document_type} · {document.matter}</p></div><div><StatusPill live={live} /><button onClick={() => download(`${document.title}-decision-report.txt`, reportText(document))}><Download size={16} />Report</button><button className="inst-delete" onClick={() => remove(document.id)}><Trash2 size={16} /></button></div></section>
+    <section className="inst-provenance"><span><strong>{live ? 'Live institutional analysis' : 'Emergency fallback'}</strong>{analysis.engine}</span><span><strong>Mode</strong>{analysis.analysis_details?.mode || 'Not recorded'}</span><span><strong>Independent passes</strong>{analysis.analysis_details?.independent_passes ?? 0}</span><span><strong>Model</strong>{analysis.analysis_details?.model || 'Not recorded'}</span><span><strong>Evidence reviewed</strong>{(analysis.analysis_details?.document_characters_reviewed || 0).toLocaleString()} characters</span></section>
+    <nav className="inst-tabs">{REVIEW_TABS.map(([key, label]) => <button key={key} className={tab === key ? 'active' : ''} onClick={() => setTab(key)}>{label}</button>)}</nav>
 
-  return <div className="simulation-lab"><section className="panel simulation-builder"><PanelHeader title="Build institutional scenario" subtitle="Model any cross-functional event against active uploaded context" /><form onSubmit={run}><label className="field-label">Scenario type<select value={form.scenarioType} onChange={event => setForm({ ...form, scenarioType: event.target.value })}>{SCENARIO_TYPES.map(([key, label]) => <option key={key} value={key}>{label}</option>)}</select></label><label className="field-label">Scenario title<input value={form.title} onChange={event => setForm({ ...form, title: event.target.value })} /></label><label className="field-label">Trigger and factual assumptions<textarea rows="5" value={form.trigger} onChange={event => setForm({ ...form, trigger: event.target.value })} placeholder="Describe what happens, which object is affected and what is known or assumed." /></label><div className="slider-grid"><Slider label="Probability" value={form.probability} onChange={value => setForm({ ...form, probability: value })} /><Slider label="Severity" value={form.severity} onChange={value => setForm({ ...form, severity: value })} /><Slider label="Speed of impact" value={form.speed} onChange={value => setForm({ ...form, speed: value })} /><Slider label="Control strength" value={form.controlStrength} onChange={value => setForm({ ...form, controlStrength: value })} /></div><div className="field-row"><label className="field-label">Duration (days)<input type="number" min="1" max="3650" value={form.durationDays} onChange={event => setForm({ ...form, durationDays: Number(event.target.value) })} /></label><label className="field-label">Financial exposure, optional<input type="number" min="0" value={form.financialExposure} onChange={event => setForm({ ...form, financialExposure: event.target.value })} placeholder="Use source currency" /></label></div><label className="field-label">Affected functions</label><div className="function-chips">{FUNCTIONS.map(item => <button type="button" key={item} className={form.affectedFunctions.includes(item) ? 'active' : ''} onClick={() => toggleFunction(item)}>{item}</button>)}</div><label className="field-label">Existing controls, one per line<textarea rows="4" value={form.controlsText} onChange={event => setForm({ ...form, controlsText: event.target.value })} placeholder="Incident response plan\nLiquidity buffer\nTermination assistance\nBoard escalation protocol" /></label><div className="linked-context"><strong>Linked active context</strong><span>{[context.document?.title, context.portfolio?.title, context.mandate?.title, context.regulatory?.title].filter(Boolean).join(' · ') || 'No uploaded context linked'}</span></div><button className="primary-button wide" disabled={busy}>{busy ? <><LoaderCircle className="spin" size={18} />Running institutional model…</> : <><PlayCircle size={18} />Run live simulation</>}</button></form></section><section className="simulation-output">{simulation ? <><section className="workspace-header simulation-head"><div><span className="eyebrow">{simulation.scenario_label.toUpperCase()}</span><h2>{simulation.title}</h2><p>{simulation.executive_position}</p></div><div className="workspace-actions"><span className={riskClass(simulation.overall_level)}>{simulation.overall_level} · {simulation.overall_score}/100</span><button className="secondary-button" onClick={() => download(`${simulation.title}.json`, JSON.stringify(simulation, null, 2))}><Download size={16} />Export</button></div></section><section className="panel"><div className="scenario-tabs">{simulation.variants.map((item, index) => <button key={item.name} className={variantIndex === index ? 'active' : ''} onClick={() => setVariantIndex(index)}>{item.name}</button>)}</div>{variant && <div className="metric-grid six"><Metric label="Impact score" value={`${variant.overall_score}/100`} /><Metric label="Impact level" value={variant.level} /><Metric label="Time to critical" value={`${variant.time_to_critical_hours}h`} /><Metric label="Continuity" value={`${variant.continuity_index}/100`} /><Metric label="Stakeholder impact" value={`${variant.stakeholder_impact_index}/100`} /><Metric label="Regulatory urgency" value={`${variant.regulatory_urgency_index}/100`} /></div>}</section><section className="content-grid equal"><article className="panel"><PanelHeader title="Affected domains" subtitle="Calculated from scenario parameters, controls and active context" /><div className="distribution-list">{variant?.affected_domains?.map(item => <div key={item.domain}><header><span>{item.domain.replaceAll('_', ' ')}</span><strong>{item.score.toFixed(1)}</strong></header><div><span style={{ width: `${Math.max(2, item.score)}%` }} /></div></div>)}</div></article><article className="panel"><PanelHeader title="Cascade path" subtitle="Likely sequence requiring controlled institutional response" /><div className="cascade-list">{simulation.cascade.map(item => <div key={item.id}><span>{item.sequence}</span><p><strong>{item.event}</strong><small>{item.state} · starts about {item.estimated_start_hours}h · {item.owner}</small></p></div>)}</div></article></section><section className="content-grid two-one"><article className="panel"><PanelHeader title="Decision gates and controlled actions" subtitle="No action is represented as completed" />{simulation.actions.map(item => <div className="action-row" key={item.id}><span>{item.priority === 'Immediate' ? '!' : item.priority === 'High' ? 'H' : 'P'}</span><div><strong>{item.action}</strong><small>{item.owner} · {item.approval_gate}</small><p>Completion evidence: {item.completion_evidence}</p></div></div>)}</article><aside className="panel"><PanelHeader title="Evidence gaps" subtitle="Missing facts that reduce reliability" />{simulation.evidence_gaps.length ? simulation.evidence_gaps.map(item => <div className="gap-row" key={item}><CircleAlert size={17} /><span>{item}</span></div>) : <div className="positive-state"><CheckCircle2 size={24} /><strong>No major input gap detected</strong></div>}<PanelHeader title="Model boundary" />{simulation.assumptions.map(item => <div className="gap-row neutral" key={item}><Shield size={17} /><span>{item}</span></div>)}</aside></section></> : <Empty title="Build and run a scenario" text="The simulation can combine document findings, portfolio exposure, mandate breaches and regulatory actions with your scenario assumptions." action={<PlayCircle size={32} />} />}</section></div>;
+    {tab === 'brief' && <div className="inst-brief-grid"><section className="inst-card inst-decision-card"><small>RECOMMENDED INSTITUTIONAL POSITION</small><h3>{analysis.recommended_decision}</h3><p>{analysis.executive_position}</p></section><section className="inst-card"><CardHeader title="Document intelligence" subtitle="What the evidence means" /><p className="inst-long">{analysis.document_summary}</p></section><section className="inst-card full"><CardHeader title="Institutional thesis" subtitle="Economic, operational, governance and stakeholder meaning" /><p className="inst-long">{decision.institutional_thesis || 'Decision intelligence was not generated.'}</p><div className="inst-tags">{(decision.affected_areas || []).map(item => <span key={item}>{item}</span>)}</div></section><section className="inst-metrics full">{[['Risks',analysis.findings?.length||0],['Decisions',decision.decision_questions?.length||0],['Obligations',decision.obligations?.length||0],['Actions',decision.action_plan?.length||0],['Evidence gaps',decision.evidence_gaps?.length||0]].map(([label,value])=><div key={label}><strong>{value}</strong><small>{label}</small></div>)}</section><StakeholderImpact impact={decision.stakeholder_impact} /></div>}
+
+    {tab === 'decision' && <div className="inst-decision-grid"><section className="inst-card"><CardHeader title="Decisions required" subtitle="Questions for authorised personnel" />{(decision.decision_questions || []).length ? <NumberedList items={decision.decision_questions} /> : <Empty title="No decision question generated" text="Review the fallback status and source evidence." />}</section><section className="inst-card"><CardHeader title="Unresolved questions" subtitle="Facts or drafting points preventing reliable action" />{(decision.unresolved_questions || []).length ? <NumberedList items={decision.unresolved_questions} warning /> : <Empty title="No unresolved question recorded" text="Authorised review remains required." />}</section><section className="inst-card full"><CardHeader title="Parties and entities" subtitle="Roles, interests and exposure" /><div className="inst-entity-grid">{(decision.parties_and_entities || []).map((item,index)=><article key={`${item.name}-${index}`}><Users size={19}/><h3>{item.name}</h3><small>{item.role}</small><p><strong>Interests:</strong> {item.interests}</p><p><strong>Exposure:</strong> {item.exposure}</p></article>)}</div></section><section className="inst-card full"><CardHeader title="Dependencies and failure effects" subtitle="What must be true before the next action" /><div className="inst-dependency-list">{(decision.dependencies || []).map((item,index)=><article key={index}><Network size={18}/><div><strong>{item.dependency}</strong><p>Affects: {item.affected_item}</p><small>Failure effect: {item.failure_effect}</small></div></article>)}</div></section></div>}
+
+    {tab === 'risks' && <div className="inst-risks"><section className="inst-card inst-risk-list">{(analysis.findings || []).length ? analysis.findings.map((item,index)=><button key={item.id||index} className={selected===index?'active':''} onClick={()=>setSelected(index)}><span className={`inst-risk ${riskTone(item.risk_level)}`}>{item.risk_level}</span><strong>{item.issue}</strong><small>{item.risk_category} · {item.risk_score}/100 · {item.clause_reference}</small></button>) : <Empty title="No material finding generated" text="Check whether the result is live analysis or fallback." />}</section><section className="inst-card inst-risk-detail">{finding ? <><span className={`inst-risk ${riskTone(finding.risk_level)}`}>{finding.risk_level} · {finding.risk_score}/100</span><h2>{finding.issue}</h2><small>{finding.clause_reference} · confidence {finding.confidence}%</small><h4>Evidence</h4><blockquote>{finding.quoted_text}</blockquote><h4>Why it matters institutionally</h4><p>{finding.why_risky_for_bank}</p><h4>Failure path</h4><p>{finding.how_risk_may_materialise}</p><h4>Impact</h4><div className="inst-impact">{Object.entries(finding.impact||{}).map(([key,value])=><div key={key}><strong>{key.replace('_',' / ')}</strong><p>{value}</p></div>)}</div><h4>Mitigation</h4><p>{finding.recommended_mitigation}</p><h4>Document-specific language</h4><div className="inst-rewrite">{finding.suggested_rewrite}</div><div className="inst-tags">{(finding.review_owner||[]).map(item=><span key={item}>{item}</span>)}</div></> : null}</section></div>}
+
+    {tab === 'obligations' && <section className="inst-card"><CardHeader title="Obligation register" subtitle="Actor, trigger, deadline, evidence, consequence and owner" />{(decision.obligations || []).length ? <div className="inst-obligation-list">{decision.obligations.map((item,index)=><article key={index}><span>{index+1}</span><div><h3>{item.obligation}</h3><small>{item.actor} · Owner: {item.owner}</small><dl><div><dt>Trigger</dt><dd>{item.trigger}</dd></div><div><dt>Deadline / frequency</dt><dd>{item.deadline_or_frequency}</dd></div><div><dt>Evidence required</dt><dd>{item.evidence_required}</dd></div><div><dt>Consequence</dt><dd>{item.consequence}</dd></div></dl></div></article>)}</div> : <Empty title="No obligation model generated" text="Use deep or standard live analysis for the decision and execution model." />}</section>}
+
+    {tab === 'actions' && <section className="inst-card"><CardHeader title="Controlled action plan" subtitle="Actions do not execute until their approval gate is satisfied" />{(decision.action_plan || []).length ? <div className="inst-action-grid">{decision.action_plan.map((item,index)=><article key={index}><div><span>{item.priority}</span><strong>{item.owner}</strong></div><h3>{item.action}</h3><p><Gavel size={16}/><strong>Approval gate:</strong> {item.approval_gate}</p><p><CheckCircle2 size={16}/><strong>Completion evidence:</strong> {item.completion_evidence}</p></article>)}</div> : <Empty title="No controlled action plan generated" text="A live decision-intelligence pass is required." />}</section>}
+
+    {tab === 'gaps' && <div className="inst-gap-grid"><section className="inst-card"><CardHeader title="Missing protections" subtitle="Expected clauses or controls not found" /><div className="inst-card-grid">{(analysis.missing_clauses||[]).map((item,index)=><article key={index}><span className={`inst-risk ${riskTone(item.risk_level)}`}>{item.risk_level}</span><h3>{item.clause}</h3><p>{item.why_needed}</p><div className="inst-rewrite">{item.recommended_language}</div></article>)}</div></section><section className="inst-card"><CardHeader title="Contradictions" subtitle="Internal conflict requiring resolution" />{(analysis.contradictions||[]).length ? (analysis.contradictions||[]).map((item,index)=><article className="inst-gap-item" key={index}><span className={`inst-risk ${riskTone(item.risk_level)}`}>{item.risk_level}</span><h3>{item.issue}</h3><p>{(item.locations||[]).join(', ')}</p><div className="inst-rewrite">{item.resolution}</div></article>) : <Empty title="No contradiction recorded" text="Cross-document conflict is outside a single-document review unless comparison evidence is supplied." />}</section><section className="inst-card full"><CardHeader title="Evidence gaps" subtitle="Information absent from the document that blocks a reliable decision" />{(decision.evidence_gaps||[]).length ? <NumberedList items={decision.evidence_gaps} warning /> : <Empty title="No evidence gap recorded" text="This does not eliminate the need for factual verification." />}</section></div>}
+
+    {tab === 'scenarios' && <section className="inst-card"><CardHeader title="Document-grounded stress scenarios" subtitle="Triggers, events, consequences and controls derived from the evidence" /><div className="inst-card-grid">{(analysis.scenario_tests||[]).length ? analysis.scenario_tests.map((item,index)=><article key={index}><span className={`inst-risk ${riskTone(item.risk_level)}`}>{item.risk_level}</span><h3>{item.title}</h3><h4>Document trigger</h4><blockquote>{item.trigger_from_document}</blockquote><h4>Event</h4><p>{item.event}</p><h4>Likely outcome</h4><p>{item.likely_outcome}</p><h4>Control</h4><div className="inst-rewrite">{item.recommended_control}</div></article>) : <Empty title="No material scenario supported" text="Scenario tests are generated only when evidence supports a defensible trigger." />}</div></section>}
+
+    {tab === 'sources' && <div className="inst-source-grid"><section className="inst-card"><CardHeader title="Regulatory and control map" subtitle="Areas requiring the appropriate control owner" /><div className="inst-card-grid">{(analysis.regulatory_touchpoints||[]).map((item,index)=><article key={index}><Shield size={19}/><h3>{item.area}</h3><p>{item.relevance}</p><div className="inst-rewrite">{item.action}</div>{item.verification_required&&<small>Current-source verification required</small>}</article>)}</div></section><section className="inst-card"><CardHeader title="Current-source verification" subtitle={analysis.source_verification?.checked_at ? `Checked ${formatDate(analysis.source_verification.checked_at)}` : 'Not requested or unavailable'} /><p className="inst-long">{analysis.source_verification?.summary || 'Enable current-source verification when the decision depends on current law, regulation, directions or official guidance.'}</p><div className="inst-source-list">{(analysis.source_verification?.sources||[]).map((item,index)=><a key={index} href={item.url} target="_blank" rel="noreferrer"><Landmark size={17}/><span>{item.title}</span><ArrowRight size={15}/></a>)}</div></section></div>}
+
+    {tab === 'assistant' && <section className="inst-card inst-assistant"><CardHeader title="Ask the active decision record" subtitle="The answer is grounded in this analysis, obligation model, action plan and source verification" /><textarea rows="4" value={question} onChange={event=>setQuestion(event.target.value)} /><button className="inst-primary" onClick={ask} disabled={asking}>{asking?<><LoaderCircle className="spin" size={17}/>Reviewing the decision record…</>:<><MessageSquareText size={17}/>Ask LIVE SYNESIS</>}</button>{answer&&<pre>{answer}</pre>}</section>}
+
+    {tab === 'report' && <section className="inst-card"><CardHeader title="Institutional decision report" subtitle="Export the evidence-led analysis and execution model" action={<div className="inst-actions"><button onClick={()=>download(`${document.title}.json`,JSON.stringify(document,null,2),'application/json')}><Download size={15}/>JSON</button><button className="inst-primary" onClick={()=>download(`${document.title}-decision-report.txt`,reportText(document))}><Download size={15}/>Report</button></div>} /><pre className="inst-report">{reportText(document)}</pre></section>}
+  </div>;
 }
 
-function InstitutionalGraph({ context, simulation, navigate }) {
-  const nodes = [
-    { label: 'Institution', type: 'core', detail: 'Decision and accountability centre' },
-    context.document && { label: context.document.title, type: 'document', detail: `${context.document.findings?.length || 0} finding(s)` },
-    context.portfolio && { label: context.portfolio.title, type: 'capital', detail: `${context.portfolio.metrics?.holdings || 0} mapped exposure(s)` },
-    context.mandate && { label: context.mandate.title, type: 'mandate', detail: `${context.mandate.breach_count || 0} breach(es)` },
-    context.regulatory && { label: context.regulatory.title, type: 'regulatory', detail: `${context.regulatory.obligations?.length || 0} obligation(s)` },
-    simulation && { label: simulation.title, type: 'simulation', detail: `${simulation.overall_level} · ${simulation.overall_score}/100` },
-    { label: 'People & authority', type: 'people', detail: 'Owners, approvers and decision gates' },
-    { label: 'Controls & evidence', type: 'controls', detail: 'Preventive, detective and closure evidence' },
-    { label: 'Stakeholders', type: 'stakeholder', detail: 'Customers, investors, regulators and management' }
-  ].filter(Boolean);
-  return <div className="page-stack"><section className="workspace-header"><div><span className="eyebrow">CONNECTED INSTITUTIONAL MODEL</span><h2>Institutional graph</h2><p>This prototype links current uploaded and calculated context into one decision view. A production graph would resolve entities, obligations, systems, controls, people, contracts, capital and evidence across enterprise systems.</p></div><button className="secondary-button" onClick={() => navigate('work')}>Add context<ArrowRight size={16} /></button></section><section className="panel graph-panel"><div className="graph-canvas">{nodes.map((node, index) => <article key={`${node.label}-${index}`} className={`graph-node ${node.type}`} style={{ '--i': index }}><span>{index + 1}</span><strong>{node.label}</strong><small>{node.detail}</small></article>)}<svg viewBox="0 0 1000 560" preserveAspectRatio="none" aria-hidden="true"><line x1="500" y1="270" x2="180" y2="120" /><line x1="500" y1="270" x2="500" y2="75" /><line x1="500" y1="270" x2="820" y2="120" /><line x1="500" y1="270" x2="150" y2="360" /><line x1="500" y1="270" x2="850" y2="360" /><line x1="500" y1="270" x2="310" y2="490" /><line x1="500" y1="270" x2="690" y2="490" /></svg></div></section><section className="content-grid equal"><article className="panel"><PanelHeader title="Graph-enabled questions" /><div className="question-list">{['What is affected if this regulation changes?', 'Which decisions created this exposure?', 'Which people can approve the next action?', 'Which contracts, controls and systems depend on this provider?', 'Which investors or customers may be affected?', 'What evidence proves remediation was completed?'].map(item => <div key={item}><Search size={16} /><span>{item}</span></div>)}</div></article><article className="panel"><PanelHeader title="Current graph coverage" /><ContextRow icon={FileText} label="Document intelligence" value={context.document?.title || 'No active source'} /><ContextRow icon={WalletCards} label="Capital and exposure" value={context.portfolio?.title || 'No active data'} /><ContextRow icon={Target} label="Mandate and limits" value={context.mandate?.title || 'No active mandate'} /><ContextRow icon={Landmark} label="Regulation and obligations" value={context.regulatory?.title || 'No active update'} /></article></section></div>;
+function StakeholderImpact({ impact }) {
+  if (!impact) return null;
+  const labels = { customers_or_unit_holders: 'Customers / investors / unit-holders', regulators: 'Regulators', management: 'Management', operations: 'Operations', capital_or_financial: 'Capital / financial' };
+  return <section className="inst-card full"><CardHeader title="Stakeholder impact" subtitle="Who bears the consequence of the decision" /><div className="inst-impact stakeholder">{Object.entries(impact).map(([key,value])=><div key={key}><strong>{labels[key]||key}</strong><p>{value}</p></div>)}</div></section>;
 }
 
-function DecisionMemory({ memory, setMemory, recent, simulations, context }) {
-  const [form, setForm] = useState({ title: '', outcome: 'Approved with conditions', owner: 'Authorised decision-maker', rationale: '', conditions: '' });
-  function submit(event) {
-    event.preventDefault();
-    if (!form.title.trim() || !form.rationale.trim()) return;
-    setMemory(current => [{ id: uid(), ...form, at: new Date().toISOString(), linked: [context.document?.title, context.portfolio?.title, context.mandate?.title, context.regulatory?.title, simulations[0]?.title].filter(Boolean) }, ...current]);
-    setForm({ title: '', outcome: 'Approved with conditions', owner: 'Authorised decision-maker', rationale: '', conditions: '' });
-  }
-  return <div className="content-grid equal decision-layout"><form className="panel decision-form" onSubmit={submit}><PanelHeader title="Record institutional decision" subtitle="Preserve what was decided, why, by whom and against which evidence" /><label className="field-label">Decision title<input value={form.title} onChange={event => setForm({ ...form, title: event.target.value })} /></label><div className="field-row"><label className="field-label">Outcome<select value={form.outcome} onChange={event => setForm({ ...form, outcome: event.target.value })}><option>Approved</option><option>Approved with conditions</option><option>Deferred</option><option>Rejected</option><option>Escalated</option></select></label><label className="field-label">Decision owner<input value={form.owner} onChange={event => setForm({ ...form, owner: event.target.value })} /></label></div><label className="field-label">Rationale<textarea rows="7" value={form.rationale} onChange={event => setForm({ ...form, rationale: event.target.value })} placeholder="Facts, alternatives, stakeholder interest, risk accepted and reasons." /></label><label className="field-label">Conditions and review triggers<textarea rows="4" value={form.conditions} onChange={event => setForm({ ...form, conditions: event.target.value })} /></label><div className="linked-context"><strong>Linked context</strong><span>{[context.document?.title, context.portfolio?.title, context.mandate?.title, context.regulatory?.title, simulations[0]?.title].filter(Boolean).join(' · ') || 'No active context'}</span></div><button className="primary-button wide"><BookOpenCheck size={18} />Save decision</button></form><section className="panel"><PanelHeader title="Institutional memory" subtitle={`${memory.length} decision(s) · ${recent.length} analysis record(s) · ${simulations.length} simulation(s)`} />{memory.length ? <div className="decision-list">{memory.map(item => <article key={item.id}><header><span className={riskClass(item.outcome === 'Rejected' ? 'High' : item.outcome === 'Approved' ? 'Low' : 'Medium')}>{item.outcome}</span><small>{formatDate(item.at)}</small></header><h3>{item.title}</h3><p>{item.rationale}</p>{item.conditions && <blockquote>{item.conditions}</blockquote>}<footer><span>{item.owner}</span><small>{item.linked.join(' · ')}</small></footer></article>)}</div> : <Empty title="No decision recorded" text="Create the first evidence-linked decision record." />}</section></div>;
+function NumberedList({ items, warning }) {
+  return <div className={`inst-numbered ${warning?'warning':''}`}>{items.map((item,index)=><div key={`${item}-${index}`}><span>{index+1}</span><p>{item}</p></div>)}</div>;
 }
 
-function AgentStudio({ context }) {
-  const agents = [
-    ['Institutional Intake Agent', 'Classifies work, identifies missing context and routes the matter.', 'Documents and user input', 'Human confirms scope'],
-    ['Regulatory Impact Agent', 'Maps change to obligations, controls, systems, owners and evidence.', 'Regulatory source and enterprise graph', 'Compliance approves interpretation'],
-    ['Contract Command Agent', 'Reviews rights, duties, value, risk, negotiation and post-signature obligations.', 'Agreements and playbooks', 'Legal approves position'],
-    ['Capital & Mandate Agent', 'Assesses holdings, liquidity, limits, conflicts and investor-interest impact.', 'Portfolio, mandate and market inputs', 'Investment/Risk approval'],
-    ['Investigation Agent', 'Builds chronology, evidence gaps, persons, control failures and response plan.', 'Incident and evidence set', 'Legal/Compliance approval'],
-    ['Simulation Agent', 'Models cross-functional cascade, decisions, actions and evidence.', 'Scenario inputs and active context', 'Authorised owner validates assumptions'],
-    ['Service Provider Agent', 'Tracks SLA, continuity, incidents, concentration, remedies and exit readiness.', 'Vendor data and contracts', 'Operations/Risk approval'],
-    ['Decision Memory Agent', 'Finds comparable decisions and preserves rationale and outcomes.', 'Approved institutional memory', 'Access-controlled retrieval']
-  ];
-  return <div className="page-stack"><section className="workspace-header"><div><span className="eyebrow">GOVERNED AGENTIC OPERATING MODEL</span><h2>Agent studio</h2><p>Agents are reusable institutional capabilities with defined objectives, permitted sources, action boundaries, approval gates, evaluation and execution traces.</p></div><span className="risk-badge low">Prototype configuration</span></section><section className="agent-card-grid">{agents.map(([name, purpose, source, approval], index) => <article className="panel agent-card" key={name}><header><span><BrainCircuit size={21} /></span><div><small>AGENT {String(index + 1).padStart(2, '0')}</small><h3>{name}</h3></div><span className={index < 6 ? 'agent-live' : 'agent-off'}>{index < 6 ? 'Configured' : 'Planned'}</span></header><p>{purpose}</p><dl><div><dt>Permitted source</dt><dd>{source}</dd></div><div><dt>Approval boundary</dt><dd>{approval}</dd></div><div><dt>Active context</dt><dd>{[context.document, context.portfolio, context.mandate, context.regulatory].filter(Boolean).length} connected source(s)</dd></div></dl></article>)}</section></div>;
+function RiskBadge({ risk = 'Low', score }) {
+  return <span className={`inst-risk-badge ${riskTone(risk)}`}><strong>{risk}</strong>{Number.isFinite(score)&&<small>{score}/100</small>}</span>;
 }
 
-function ControlTower({ health, recent, simulations }) {
-  return <div className="page-stack"><section className="metric-grid"><Metric icon={BrainCircuit} label="Active engines" value={health?.activeEngines?.length || 0} /><Metric icon={Activity} label="Analyses" value={recent.length} /><Metric icon={PlayCircle} label="Simulations" value={simulations.length} /><Metric icon={Database} label="Public persistence" value="Browser-local" /></section><section className="content-grid equal"><article className="panel"><PanelHeader title="Connection and engine status" subtitle="Unavailable services are not represented as live" /><StatusRow label="Public application" active={Boolean(health?.ok)} value={health?.ok ? 'Reachable' : health?.error || 'Unavailable'} /><StatusRow label="External AI" active={Boolean(health?.aiConfigured)} value={health?.aiConfigured ? `${health.model} configured` : 'Unavailable or invalid'} /><StatusRow label="Institutional simulation" active={health?.activeEngines?.includes('institutional-simulation')} value="Server-side cross-functional model" /><StatusRow label="Document intelligence" active={health?.activeEngines?.includes('institutional-document-analysis')} value="Source-specific analysis" /><StatusRow label="Capital and mandate" active={health?.activeEngines?.includes('portfolio-calculation')} value="Portfolio, liquidity and rule mapping" /><StatusRow label="Private workspace" active={health?.privateWorkspace === 'configured-separately'} value={health?.privateWorkspace || 'Not configured'} /></article><article className="panel"><PanelHeader title="Governance controls" /><div className="governance-list"><Governance icon={ShieldCheck} title="Human approval" text="High-risk actions are recommendations until an authorised person approves and evidence confirms execution." /><Governance icon={Scale} title="Source and inference separation" text="Uploaded facts, calculations, assumptions and professional inference remain distinguishable." /><Governance icon={Database} title="Data boundary" text="The public prototype processes source content for the request and keeps saved records in the browser." /><Governance icon={Settings2} title="Model and agent controls" text="Production deployment requires versioning, evaluations, permissions, monitoring, cost controls and kill switches." /></div></article></section><section className="panel"><PanelHeader title="Engine inventory" subtitle="Unified platform capabilities" /><div className="engine-grid">{(health?.activeEngines || []).map(engine => <div key={engine}><span><Cpu size={18} /></span><strong>{engine.replaceAll('-', ' ')}</strong><small>Active · server-side</small></div>)}</div></section></div>;
+function StatusPill({ live }) {
+  return <span className={`inst-status ${live?'live':'fallback'}`}>{live?<><Zap size={13}/>Live AI</>:<><CircleAlert size={13}/>Fallback</>}</span>;
 }
 
-function Slider({ label, value, onChange }) {
-  return <label><span>{label}</span><div><input type="range" min="1" max="5" value={value} onChange={event => onChange(Number(event.target.value))} /><strong>{value}/5</strong></div></label>;
+function CardHeader({ title, subtitle, action }) {
+  return <div className="inst-card-head"><div><h2>{title}</h2>{subtitle&&<p>{subtitle}</p>}</div>{action}</div>;
 }
-function Metric({ icon: Icon, label, value, sub }) { return <div className="metric-card">{Icon && <span><Icon size={20} /></span>}<strong>{value}</strong><small>{label}</small>{sub && <p>{sub}</p>}</div>; }
-function PanelHeader({ title, subtitle, action }) { return <header className="panel-header"><div><h3>{title}</h3>{subtitle && <p>{subtitle}</p>}</div>{action}</header>; }
-function ContextRow({ icon: Icon, label, value }) { return <div className="context-row"><span><Icon size={18} /></span><div><small>{label}</small><strong>{value}</strong></div></div>; }
-function StatusRow({ label, active, value }) { return <div className="status-row"><span className={active ? 'status-dot live' : 'status-dot'} /><div><strong>{label}</strong><small>{value}</small></div></div>; }
-function Governance({ icon: Icon, title, text }) { return <div><span><Icon size={19} /></span><p><strong>{title}</strong><small>{text}</small></p></div>; }
-function Empty({ title, text, action }) { return <div className="empty-state"><div>{action || <Search size={28} />}</div><h3>{title}</h3><p>{text}</p></div>; }
+
+function Empty({ title, text }) {
+  return <div className="inst-empty"><FileText size={25}/><strong>{title}</strong><p>{text}</p></div>;
+}
