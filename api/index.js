@@ -10,6 +10,7 @@ import {
   analyzeRegulatoryChange,
   answerFromInstitutionalContext
 } from '../server/src/institutional-engine.js';
+import { scenarioCatalogue, simulateInstitutionalScenario } from '../server/src/simulation-engine.js';
 
 const gateway = express();
 const openai = config.openaiKey && !/(set_in|paste|replace|your_key)/i.test(config.openaiKey)
@@ -70,18 +71,28 @@ gateway.get('/api/health', (req, res) => {
   res.json({
     ok: true,
     product: 'SYNESIS',
-    version: '4.0.0-prototype',
+    version: '4.1.0-unified-prototype',
     institutionalPrototype: true,
     publicWorkspace: true,
-    analysis: 'source-specific-institutional-engines',
+    analysis: 'source-specific-cross-functional-institutional-engines',
     aiConfigured: Boolean(openai),
     model: config.openaiModel,
     persistence: 'browser-local-for-public-workspace',
     privateWorkspace: config.databaseUrl ? 'configured-separately' : 'not-configured',
     supportedUploads: ['PDF', 'DOCX', 'TXT', 'CSV', 'JSON', 'MD', 'XML'],
-    activeEngines: ['portfolio-calculation', 'redemption-simulation', 'mandate-mapping', 'regulatory-impact', 'institutional-document-analysis'],
+    activeEngines: ['institutional-simulation', 'portfolio-calculation', 'redemption-simulation', 'mandate-mapping', 'regulatory-impact', 'institutional-document-analysis'],
+    scenarioCatalogue,
     time: new Date().toISOString()
   });
+});
+
+gateway.post('/api/public/institutional/simulate', publicLimiter, (req, res) => {
+  try {
+    const analysis = simulateInstitutionalScenario(req.body || {});
+    sendAnalysis(res, analysis);
+  } catch (error) {
+    institutionalFailure(res, error, 'Synesis could not run this institutional simulation.');
+  }
 });
 
 gateway.post('/api/public/institutional/portfolio', publicLimiter, (req, res) => {
@@ -170,7 +181,7 @@ gateway.post('/api/public/analyze', publicLimiter, async (req, res) => {
     documentType: String(req.body?.documentType || 'Auto-detect').trim().slice(0, 120),
     jurisdiction: String(req.body?.jurisdiction || 'India').trim().slice(0, 100),
     riskAppetite: String(req.body?.riskAppetite || 'Conservative').trim().slice(0, 60),
-    department: String(req.body?.department || 'Legal').trim().slice(0, 100)
+    department: String(req.body?.department || 'Institutional').trim().slice(0, 100)
   };
 
   try {
@@ -191,7 +202,7 @@ gateway.post('/api/public/analyze', publicLimiter, async (req, res) => {
     });
   } catch (error) {
     console.error('Public analysis failed:', error);
-    res.status(500).json({ error: 'LIVE SYNESIS could not analyse this document.' });
+    res.status(500).json({ error: 'SYNESIS could not analyse this document.' });
   }
 });
 
@@ -219,7 +230,7 @@ gateway.post('/api/public/ask', publicLimiter, async (req, res) => {
     const response = await openai.responses.create({
       model: config.openaiModel,
       store: false,
-      input: `You are LIVE SYNESIS. Answer only from the supplied active-document analysis. Do not invent clauses, law, facts or citations. State uncertainty clearly. Address the institution as the Bank.\n\nQUESTION\n${question}\n\nACTIVE ANALYSIS\n${JSON.stringify(analysis).slice(0, 90000)}`
+      input: `You are SYNESIS. Answer only from the supplied active-document analysis. Do not invent clauses, law, facts or citations. State uncertainty clearly.\n\nQUESTION\n${question}\n\nACTIVE ANALYSIS\n${JSON.stringify(analysis).slice(0, 90000)}`
     });
     res.set('Cache-Control', 'no-store');
     res.json({ answer: response.output_text || 'No answer was returned.', engine: 'openai-grounded-answer' });
