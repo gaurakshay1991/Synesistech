@@ -12,12 +12,17 @@
     "api/ai.js": {
       "maxDuration": 300,
       "memory": 1024
+    },
+    "api/dispatch.js": {
+      "maxDuration": 300,
+      "memory": 1024
     }
   },
   "routes": [
-    { "src": "/api/public/analyze", "dest": "/api/ai.js" },
-    { "src": "/api/public/ask", "dest": "/api/ai.js" },
-    { "src": "/api/health/ai(?:/.*)?", "dest": "/api/ai.js" },
+    { "src": "/api/public/analyze", "dest": "/api/dispatch.js?operation=analyze" },
+    { "src": "/api/public/ask", "dest": "/api/dispatch.js?operation=ask" },
+    { "src": "/api/health/ai", "dest": "/api/dispatch.js?operation=health" },
+    { "src": "/api/health/ai-smoke-20260720", "dest": "/api/dispatch.js?operation=smoke" },
     { "src": "/api(?:/.*)?", "dest": "/api/index.js" },
     { "handle": "filesystem" },
     { "src": "/(.*)", "dest": "/index.html" }
