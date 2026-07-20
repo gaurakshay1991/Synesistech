@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client';
 import { Analytics } from '@vercel/analytics/react';
 import RootApp from './RootApp.jsx';
 import './institutional.css';
+import './lab.css';
 
 createRoot(document.getElementById('root')).render(
   <React.StrictMode>
