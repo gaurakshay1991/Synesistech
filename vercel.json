@@ -8,9 +8,16 @@
     "api/index.js": {
       "maxDuration": 60,
       "memory": 1024
+    },
+    "api/ai.js": {
+      "maxDuration": 300,
+      "memory": 1024
     }
   },
   "routes": [
+    { "src": "/api/public/analyze", "dest": "/api/ai.js" },
+    { "src": "/api/public/ask", "dest": "/api/ai.js" },
+    { "src": "/api/health/ai(?:/.*)?", "dest": "/api/ai.js" },
     { "src": "/api(?:/.*)?", "dest": "/api/index.js" },
     { "handle": "filesystem" },
     { "src": "/(.*)", "dest": "/index.html" }
