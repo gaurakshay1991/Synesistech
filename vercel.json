@@ -16,12 +16,17 @@
     "api/dispatch.js": {
       "maxDuration": 300,
       "memory": 1024
+    },
+    "api/os.js": {
+      "maxDuration": 60,
+      "memory": 1024
     }
   },
   "routes": [
     { "src": "/api/public/analyze", "dest": "/api/dispatch.js?operation=analyze" },
     { "src": "/api/public/ask", "dest": "/api/dispatch.js?operation=ask" },
     { "src": "/api/health/ai", "dest": "/api/dispatch.js?operation=health" },
+    { "src": "/api/os(?:/.*)?", "dest": "/api/os.js" },
     { "src": "/api(?:/.*)?", "dest": "/api/index.js" },
     { "handle": "filesystem" },
     { "src": "/(.*)", "dest": "/index.html" }
