@@ -1,6 +1,6 @@
 {
-  "name": "live-synesis-platform",
-  "version": "3.0.0",
+  "name": "synesis-institutional-os",
+  "version": "1.0.0",
   "private": true,
   "type": "module",
   "workspaces": [
@@ -13,8 +13,7 @@
     "build": "npm --workspace client run build",
     "test": "npm --workspace server test",
     "check": "npm test && npm run build",
-    "db:migrate": "npm --workspace server run db:migrate",
-    "replit": "npm install --no-audit --no-fund && npm run build && NODE_ENV=production npm run start"
+    "db:migrate": "npm --workspace server run db:migrate"
   },
   "devDependencies": {
     "concurrently": "^9.1.2"
