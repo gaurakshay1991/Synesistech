@@ -1,7 +1,0 @@
-SYNESIS NEW MODEL 3.0 validated source archive
-
-Archive: synesis-new-model-3.0-source.tar.gz
-SHA-256: e953cff47175ecdf9ecdc66ab9433809335c9a5ff442e09ef5f6895f4ecf14ff
-Generated: 2026-07-21
-
-The archive excludes dependencies, build output, local runtime data and local environment files.
