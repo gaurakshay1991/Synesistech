@@ -1,4 +1,11 @@
 {
+  "name": "THEMIS Institutional Decision & Execution OS",
+  "short_name": "THEMIS",
+  "description": "Institutional decision intelligence, controlled execution and organisational memory.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#edf3f6",
+  "theme_color": "#17213a",
   "name": "THEMIS Institutional Intelligence & Execution",
   "short_name": "THEMIS",
   "description": "AI-native institutional intelligence and execution for capital, risk, regulation, contracts, governance and operations.",
