@@ -19,10 +19,45 @@ const nav = [
   ['simulations', 'Strategy & Simulations', BrainCircuit], ['admin', 'AI Control Tower', Settings2]
 ];
 
+function isCorporateFileTransferBlock(text, contentType = '') {
+  const sample = String(text || '').toLowerCase();
+  return sample.includes('file transfer blocked') ||
+    (sample.includes('blocked in accordance with company policy') && sample.includes('file name:')) ||
+    (contentType.includes('text/html') && sample.includes('contact your system administrator') && sample.includes('blocked'));
+}
+
+function blockedFileName(text) {
+  return String(text || '').match(/<b>\s*File name:\s*<\/b>\s*([^<]+)/i)?.[1]?.trim() || null;
+}
+
 async function readResponse(response) {
   const text = await response.text();
+  const contentType = response.headers.get('content-type') || '';
+
+  if (isCorporateFileTransferBlock(text, contentType)) {
+    const fileName = blockedFileName(text);
+    const error = new Error(
+      `Your organisation's security gateway blocked${fileName ? ` “${fileName}”` : ' the selected file'} before it reached Synesis. ` +
+      'Use the approved text-entry route only where policy permits, or ask IT/Cyber to allow the Synesis domain. Synesis cannot override company DLP controls.'
+    );
+    error.status = response.status || 403;
+    error.code = 'CORPORATE_FILE_TRANSFER_BLOCKED';
+    error.blockedFileName = fileName;
+    throw error;
+  }
+
   let data = {};
-  try { data = text ? JSON.parse(text) : {}; } catch { data = { error: text || 'Unexpected response.' }; }
+  try {
+    data = text ? JSON.parse(text) : {};
+  } catch {
+    if (contentType.includes('text/html')) {
+      const error = new Error('A network security or login gateway returned an HTML page instead of the Synesis API response.');
+      error.status = response.status || 502;
+      error.code = 'UNEXPECTED_HTML_RESPONSE';
+      throw error;
+    }
+    data = { error: text || 'Unexpected response.' };
+  }
   if (!response.ok) {
     const error = new Error(data.error || 'Request failed.');
     error.status = response.status;
