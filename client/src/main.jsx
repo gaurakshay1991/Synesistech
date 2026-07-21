@@ -4,7 +4,9 @@ import { Analytics } from '@vercel/analytics/react';
 import RootApp from './RootApp.jsx';
 import './institutional.css';
 import './lab.css';
-import './themis-suite.css';
+import './themis.css';
+import './regulatory-command.css';
+import './platform-home.css';
 
 createRoot(document.getElementById('root')).render(
   <React.StrictMode>

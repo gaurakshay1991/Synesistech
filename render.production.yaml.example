@@ -1,21 +1,19 @@
 services:
   - type: web
-    name: synesis-new-model-3
+    name: synesis-new-model-3-production
     runtime: node
-    rootDir: model3
-    plan: free
-    buildCommand: npm install --no-audit --no-fund && npm run check
+    plan: starter
+    buildCommand: npm ci --no-audit --no-fund && npm run check
     startCommand: npm start
     healthCheckPath: /api/health
-    autoDeploy: true
     envVars:
       - key: NODE_ENV
         value: production
-      - key: COOKIE_SECURE
-        value: "true"
+      - key: SYNESIS_PUBLIC_MODE
+        value: "false"
       - key: DATABASE_URL
         fromDatabase:
-          name: synesis-model3-db
+          name: synesis-model3-production-db
           property: connectionString
       - key: JWT_SECRET
         generateValue: true
@@ -39,8 +37,8 @@ services:
         value: "15"
 
 databases:
-  - name: synesis-model3-db
+  - name: synesis-model3-production-db
     databaseName: synesis_model3
     user: synesis_model3
-    plan: free
+    plan: basic-256mb
     ipAllowList: []
