@@ -8,9 +8,26 @@
     "api/index.js": {
       "maxDuration": 60,
       "memory": 1024
+    },
+    "api/ai.js": {
+      "maxDuration": 300,
+      "memory": 1024
+    },
+    "api/dispatch.js": {
+      "maxDuration": 300,
+      "memory": 1024
+    },
+    "api/regulatory-enterprise.js": {
+      "maxDuration": 60,
+      "memory": 1024
     }
   },
   "routes": [
+    { "src": "/api/public/analyze", "dest": "/api/dispatch.js?operation=analyze" },
+    { "src": "/api/public/ask", "dest": "/api/dispatch.js?operation=ask" },
+    { "src": "/api/health/ai", "dest": "/api/dispatch.js?operation=health" },
+    { "src": "/api/enterprise/regulatory", "dest": "/api/regulatory-enterprise.js" },
+    { "src": "/api/enterprise/regulatory/([^/]+)", "dest": "/api/regulatory-enterprise.js/$1" },
     { "src": "/api(?:/.*)?", "dest": "/api/index.js" },
     { "handle": "filesystem" },
     { "src": "/(.*)", "dest": "/index.html" }

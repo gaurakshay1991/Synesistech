@@ -1,6 +1,6 @@
 {
-  "name": "SYNESIS Institutional Intelligence",
-  "short_name": "SYNESIS",
+  "name": "THEMIS Institutional Intelligence",
+  "short_name": "THEMIS",
   "description": "AI-native institutional intelligence for capital, risk, regulation, governance and operations.",
   "start_url": "/",
   "display": "standalone",
@@ -8,7 +8,7 @@
   "theme_color": "#17213a",
   "icons": [
     {
-      "src": "/synesis-mark.svg",
+      "src": "/themis-mark.svg",
       "sizes": "any",
       "type": "image/svg+xml",
       "purpose": "any"
