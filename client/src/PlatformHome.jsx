@@ -32,7 +32,7 @@ const LIVE_SOLUTIONS = [
 ];
 
 const CORE = [
-  ['Themis Intelligence', Sparkles, 'Evidence-led document reasoning, current-source research, uncertainty separation and decision-grade analysis.'],
+  ['Open Intelligence', Sparkles, 'Evidence-led document reasoning, current-source research, uncertainty separation and decision-grade analysis.'],
   ['Institutional Impact', Network, 'Connect obligations and events to products, controls, systems, contracts, owners, capital and stakeholders.'],
   ['Decision Memory', DatabaseZap, 'Preserve what was decided, why it was decided, who approved it, what evidence supported it and what happened next.'],
   ['Controlled Execution', Workflow, 'Turn recommendations into assigned actions, approval gates, evidence requirements, escalation and verified closure.'],
@@ -63,15 +63,15 @@ export default function PlatformHome({ onNavigate }) {
   return <main className="platform-home">
     <section className="platform-hero">
       <div className="platform-hero-copy">
-        <span className="platform-eyebrow"><Building2 size={15} /> SYNESIS INSTITUTIONAL OPERATING PLATFORM</span>
+        <span className="platform-eyebrow"><Building2 size={15} /> THEMIS INSTITUTIONAL OPERATING PLATFORM</span>
         <h1>Understand the institution. Decide with control. Execute and prove completion.</h1>
-        <p>Synesis is an AI-native institutional decision intelligence and execution platform for organisations managing capital, risk, regulation, operations, governance and stakeholder obligations. Legal intelligence is a horizontal capability—not the category of the platform.</p>
+        <p>Themis is an AI-native institutional decision intelligence and execution platform for organisations managing capital, risk, regulation, operations, governance and stakeholder obligations. Legal intelligence is a horizontal capability—not the category of the platform.</p>
         <div className="platform-hero-actions">
           <button onClick={() => onNavigate('decision')}>Start institutional work <ArrowRight size={16} /></button>
           <button className="secondary" onClick={() => onNavigate('regulatory')}>Open the first vertical</button>
         </div>
       </div>
-      <div className="platform-loop" aria-label="Synesis decision loop">
+      <div className="platform-loop" aria-label="Themis decision loop">
         <div><span>1</span><strong>Understand</strong><small>Evidence, context, obligations and exposure</small></div>
         <ArrowRight size={18} />
         <div><span>2</span><strong>Decide</strong><small>Options, challenge, authority and approval</small></div>
@@ -92,8 +92,8 @@ export default function PlatformHome({ onNavigate }) {
 
     <section className="platform-section platform-core-section">
       <div className="platform-section-head">
-        <div><span>COMMON INTELLIGENCE LAYER</span><h2>What makes Synesis one platform</h2></div>
-        <p>Every solution pack should use the same institutional objects, evidence, decision memory, approval logic and execution controls.</p>
+        <div><span>COMMON INTELLIGENCE LAYER</span><h2>What makes Themis one platform</h2></div>
+        <p>Every solution pack uses the same institutional objects, evidence, Decision Memory, approval logic and execution controls.</p>
       </div>
       <div className="platform-core-grid">{CORE.map(([title, Icon, description]) => <article key={title}><Icon size={19} /><div><h3>{title}</h3><p>{description}</p></div></article>)}</div>
     </section>
@@ -102,7 +102,7 @@ export default function PlatformHome({ onNavigate }) {
       <div>
         <span className="platform-eyebrow"><Target size={15} /> INITIAL MARKET WEDGE</span>
         <h2>Obligation-to-decision-to-execution for regulated financial institutions</h2>
-        <p>The initial niche remains banks, NBFCs, AMCs, fintechs and other regulated institutions in India. Synesis should solve the complete chain from a change or event to affected obligations, decisions, controlled action and regulator-ready evidence.</p>
+        <p>The initial niche remains banks, NBFCs, AMCs, fintechs and other regulated institutions in India. Themis should solve the complete chain from a change or event to affected obligations, decisions, controlled action and regulator-ready evidence.</p>
       </div>
       <div className="platform-moat-points">
         <p><CheckCircle2 size={16} /><span><strong>Not another legal chatbot.</strong> It connects law, contracts, controls, capital, operations and governance.</span></p>
@@ -114,7 +114,7 @@ export default function PlatformHome({ onNavigate }) {
     <section className="platform-section">
       <div className="platform-section-head">
         <div><span>VERTICAL EXPANSION</span><h2>Next competitive capabilities</h2></div>
-        <p>These remain part of the product architecture. They are sequenced after the regulatory vertical becomes stable, persistent and commercially usable.</p>
+        <p>These remain part of the product architecture and are sequenced after the first vertical becomes stable, persistent and commercially usable.</p>
       </div>
       <div className="platform-roadmap">{ROADMAP.map(([title, description], index) => <article key={title}><span>{String(index + 1).padStart(2, '0')}</span><div><h3>{title}</h3><p>{description}</p></div><CircleDot size={16} /></article>)}</div>
     </section>
