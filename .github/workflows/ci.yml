@@ -17,8 +17,8 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
         with:
-          show-progress: false
-      - name: Use Node.js 20
+          show-progress: true
+      - name: Use Node.js 24
         uses: actions/setup-node@v4
         with:
           node-version: 20
