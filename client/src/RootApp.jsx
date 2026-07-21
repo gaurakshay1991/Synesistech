@@ -1,23 +1,57 @@
-import { useEffect, useState } from 'react';
-import { BrainCircuit, ChartNoAxesCombined, Globe2, ShieldCheck } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
+import {
+  BrainCircuit, ChartNoAxesCombined, Globe2, Home, Network, ShieldCheck
+} from 'lucide-react';
 import InstitutionalApp from './InstitutionalApp.jsx';
 import InstitutionalLab from './InstitutionalLab.jsx';
+import ThemisHome from './ThemisHome.jsx';
+import InstitutionalTwin from './InstitutionalTwin.jsx';
+import { EnterpriseProduct, ENTERPRISE_PRODUCTS } from './EnterpriseProducts.jsx';
 
-const MODE_KEY = 'live-synesis-active-solution-v4';
+const MODE_KEY = 'themis-active-product-v1';
+
+const FOUNDATION = [
+  { key: 'home', label: 'Command Centre', icon: Home },
+  { key: 'decision', label: 'Decision OS', icon: BrainCircuit },
+  { key: 'lab', label: 'Capital & Scenario', icon: ChartNoAxesCombined },
+  { key: 'twin', label: 'Decision Twin', icon: Network }
+];
 
 export default function RootApp() {
-  const [mode, setMode] = useState(() => localStorage.getItem(MODE_KEY) || 'decision');
+  const validModes = useMemo(() => new Set([...FOUNDATION.map(item => item.key), ...ENTERPRISE_PRODUCTS.map(item => item.key)]), []);
+  const [mode, setMode] = useState(() => {
+    const stored = localStorage.getItem(MODE_KEY);
+    return validModes.has(stored) ? stored : 'home';
+  });
+
   useEffect(() => localStorage.setItem(MODE_KEY, mode), [mode]);
-  return <div className="synesis-root">
-    <div className="synesis-solution-switcher" role="navigation" aria-label="Synesis solution switcher">
-      <button className={mode === 'decision' ? 'active' : ''} onClick={() => setMode('decision')}><BrainCircuit size={16} /><span><strong>Decision OS</strong><small>Documents, obligations, decisions and controlled actions</small></span></button>
-      <button className={mode === 'lab' ? 'active' : ''} onClick={() => setMode('lab')}><ChartNoAxesCombined size={16} /><span><strong>Capital & Scenario Lab</strong><small>Portfolio, mandate, regulation and simulations</small></span></button>
+
+  const renderActive = () => {
+    if (mode === 'home') return <ThemisHome onNavigate={setMode} />;
+    if (mode === 'decision') return <InstitutionalApp />;
+    if (mode === 'lab') return <InstitutionalLab />;
+    if (mode === 'twin') return <InstitutionalTwin />;
+    return <EnterpriseProduct productKey={mode} />;
+  };
+
+  return <div className="themis-shell">
+    <header className="themis-topbar">
+      <button className="themis-brand" onClick={() => setMode('home')}>
+        <span className="themis-brand-mark"><ShieldCheck size={20} /></span>
+        <span><strong>THEMIS</strong><small>Institutional Decision & Execution OS</small></span>
+      </button>
+      <nav className="themis-nav" aria-label="Themis product navigation">
+        {FOUNDATION.map(item => { const Icon = item.icon; return <button key={item.key} className={mode === item.key ? 'active' : ''} onClick={() => setMode(item.key)}><Icon size={14} />{item.label}</button>; })}
+        {ENTERPRISE_PRODUCTS.map(item => { const Icon = item.icon; return <button key={item.key} className={mode === item.key ? 'active' : ''} onClick={() => setMode(item.key)}><Icon size={14} />{item.title}</button>; })}
+      </nav>
+    </header>
+
+    <div className="themis-intelligence-bar">
+      <Globe2 size={18} />
+      <div><strong>EVIDENCE-LED OPEN INTELLIGENCE ARCHITECTURE</strong><small>Uploaded evidence remains the anchor. Current external research, model reasoning and autonomous actions depend on configured provider availability and approval controls. Stored Decision Memory is context—not the answer.</small></div>
+      <ShieldCheck size={18} />
     </div>
-    <div style={{ margin: '0 18px 12px', padding: '10px 14px', display: 'flex', gap: 12, alignItems: 'center', border: '1px solid rgba(37,99,235,.18)', borderRadius: 12, background: 'rgba(239,246,255,.9)', color: '#172554' }}>
-      <Globe2 size={19} />
-      <div style={{ flex: 1 }}><strong style={{ display: 'block', fontSize: 13 }}>THEMIS OPEN INTELLIGENCE IS ACTIVE</strong><small style={{ display: 'block', marginTop: 2, lineHeight: 1.4 }}>Analysis starts from the uploaded evidence, independently checks current external intelligence and separates facts, sources, inference, uncertainty and controlled actions. Stored Decision Memory is context—not the answer.</small></div>
-      <ShieldCheck size={19} />
-    </div>
-    {mode === 'decision' ? <InstitutionalApp /> : <InstitutionalLab />}
+
+    {renderActive()}
   </div>;
 }
