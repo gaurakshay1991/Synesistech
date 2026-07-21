@@ -1,0 +1,59 @@
+version: 2.1
+
+executors:
+  node22:
+    docker:
+      - image: cimg/node:22.14
+    working_directory: ~/project
+
+jobs:
+  test_and_build:
+    executor: node22
+    steps:
+      - checkout
+      - restore_cache:
+          keys:
+            - npm-v2-{{ arch }}-{{ checksum "package-lock.json" }}
+            - npm-v2-{{ arch }}-
+      - run:
+          name: Install locked dependencies
+          command: npm ci --no-audit --no-fund
+      - save_cache:
+          key: npm-v2-{{ arch }}-{{ checksum "package-lock.json" }}
+          paths:
+            - ~/.npm
+      - run:
+          name: Run server regression tests
+          command: npm test
+      - run:
+          name: Build production frontend
+          command: npm run build
+      - store_artifacts:
+          path: client/dist
+          destination: synesis-frontend
+
+  deploy_render:
+    docker:
+      - image: cimg/base:stable
+    steps:
+      - run:
+          name: Trigger Render deployment
+          command: |
+            if [ -z "${RENDER_DEPLOY_HOOK_URL:-}" ]; then
+              echo "RENDER_DEPLOY_HOOK_URL is not configured; validated build will not be deployed automatically."
+              exit 0
+            fi
+            curl --fail --show-error --silent --request POST "$RENDER_DEPLOY_HOOK_URL"
+            echo "Render deploy hook accepted."
+
+workflows:
+  validate_and_deploy:
+    jobs:
+      - test_and_build
+      - deploy_render:
+          requires:
+            - test_and_build
+          filters:
+            branches:
+              only:
+                - synesis-new-model-3.0-render
