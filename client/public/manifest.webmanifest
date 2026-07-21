@@ -1,11 +1,11 @@
 {
-  "name": "LIVE SYNESIS",
+  "name": "SYNESIS Institutional Intelligence",
   "short_name": "SYNESIS",
-  "description": "Secure document-first legal and compliance review for regulated teams.",
+  "description": "AI-native institutional intelligence for capital, risk, regulation, governance and operations.",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#f4f7fb",
-  "theme_color": "#174cc0",
+  "background_color": "#eef3f9",
+  "theme_color": "#17213a",
   "icons": [
     {
       "src": "/synesis-mark.svg",
