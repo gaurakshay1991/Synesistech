@@ -1,14 +1,14 @@
 {
-  "name": "SYNESIS Institutional Intelligence",
-  "short_name": "SYNESIS",
-  "description": "AI-native institutional intelligence for capital, risk, regulation, governance and operations.",
+  "name": "THEMIS Institutional Intelligence & Execution",
+  "short_name": "THEMIS",
+  "description": "AI-native institutional intelligence and execution for capital, risk, regulation, contracts, governance and operations.",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#eef3f9",
-  "theme_color": "#17213a",
+  "background_color": "#edf3f7",
+  "theme_color": "#153d51",
   "icons": [
     {
-      "src": "/synesis-mark.svg",
+      "src": "/themis-mark.svg",
       "sizes": "any",
       "type": "image/svg+xml",
       "purpose": "any"
