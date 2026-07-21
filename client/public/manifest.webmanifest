@@ -1,10 +1,10 @@
 {
-  "name": "SYNESIS Institutional Intelligence",
-  "short_name": "SYNESIS",
-  "description": "AI-native institutional intelligence for capital, risk, regulation, governance and operations.",
+  "name": "THEMIS Institutional Decision & Execution OS",
+  "short_name": "THEMIS",
+  "description": "Institutional decision intelligence, controlled execution and organisational memory.",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#eef3f9",
+  "background_color": "#edf3f6",
   "theme_color": "#17213a",
   "icons": [
     {
