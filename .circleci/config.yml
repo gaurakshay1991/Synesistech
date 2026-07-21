@@ -1,0 +1,56 @@
+version: 2.1
+
+executors:
+  node22:
+    docker:
+      - image: cimg/node:22.14
+    working_directory: ~/project
+
+jobs:
+  test_and_build:
+    executor: node22
+    steps:
+      - checkout
+      - restore_cache:
+          keys:
+            - model3-npm-v1-{{ arch }}-{{ checksum "model3/package.json" }}
+            - model3-npm-v1-{{ arch }}-
+      - run:
+          name: Install Model 3.0 dependencies
+          command: cd model3 && npm install --no-audit --no-fund
+      - save_cache:
+          key: model3-npm-v1-{{ arch }}-{{ checksum "model3/package.json" }}
+          paths:
+            - ~/.npm
+      - run:
+          name: Run Model 3.0 regression and production build
+          command: cd model3 && npm run check
+      - store_artifacts:
+          path: model3/client/dist
+          destination: synesis-model3-frontend
+
+  deploy_render:
+    docker:
+      - image: cimg/base:stable
+    steps:
+      - run:
+          name: Trigger Render deployment
+          command: |
+            if [ -z "${RENDER_DEPLOY_HOOK_URL:-}" ]; then
+              echo "RENDER_DEPLOY_HOOK_URL is not configured; validated build will not be deployed automatically."
+              exit 0
+            fi
+            curl --fail --show-error --silent --request POST "$RENDER_DEPLOY_HOOK_URL"
+            echo "Render deploy hook accepted."
+
+workflows:
+  validate_and_deploy:
+    jobs:
+      - test_and_build
+      - deploy_render:
+          requires:
+            - test_and_build
+          filters:
+            branches:
+              only:
+                - synesis-new-model-3.0

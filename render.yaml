@@ -1,0 +1,46 @@
+services:
+  - type: web
+    name: synesis-new-model-3
+    runtime: node
+    rootDir: model3
+    plan: free
+    buildCommand: npm install --no-audit --no-fund && npm run check
+    startCommand: npm start
+    healthCheckPath: /api/health
+    autoDeploy: true
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: COOKIE_SECURE
+        value: "true"
+      - key: DATABASE_URL
+        fromDatabase:
+          name: synesis-model3-db
+          property: connectionString
+      - key: JWT_SECRET
+        generateValue: true
+      - key: DATA_ENCRYPTION_KEY
+        generateValue: true
+      - key: BOOTSTRAP_ADMIN_NAME
+        value: Synesis Administrator
+      - key: BOOTSTRAP_ADMIN_EMAIL
+        sync: false
+      - key: BOOTSTRAP_ADMIN_PASSWORD
+        sync: false
+      - key: SYNESIS_ORGANIZATION_NAME
+        value: SYNESIS NEW MODEL 3.0
+      - key: SYNESIS_ORGANIZATION_SLUG
+        value: synesis-new-model-3
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: OPENAI_MODEL
+        value: gpt-5-mini
+      - key: MAX_UPLOAD_MB
+        value: "15"
+
+databases:
+  - name: synesis-model3-db
+    databaseName: synesis_model3
+    user: synesis_model3
+    plan: free
+    ipAllowList: []
