@@ -13,24 +13,21 @@ jobs:
       - checkout
       - restore_cache:
           keys:
-            - npm-v2-{{ arch }}-{{ checksum "package-lock.json" }}
-            - npm-v2-{{ arch }}-
+            - model3-npm-v1-{{ arch }}-{{ checksum "model3/package.json" }}
+            - model3-npm-v1-{{ arch }}-
       - run:
-          name: Install locked dependencies
-          command: npm ci --no-audit --no-fund
+          name: Install Model 3.0 dependencies
+          command: cd model3 && npm install --no-audit --no-fund
       - save_cache:
-          key: npm-v2-{{ arch }}-{{ checksum "package-lock.json" }}
+          key: model3-npm-v1-{{ arch }}-{{ checksum "model3/package.json" }}
           paths:
             - ~/.npm
       - run:
-          name: Run server regression tests
-          command: npm test
-      - run:
-          name: Build production frontend
-          command: npm run build
+          name: Run Model 3.0 regression and production build
+          command: cd model3 && npm run check
       - store_artifacts:
-          path: client/dist
-          destination: synesis-frontend
+          path: model3/client/dist
+          destination: synesis-model3-frontend
 
   deploy_render:
     docker:
@@ -56,4 +53,4 @@ workflows:
           filters:
             branches:
               only:
-                - synesis-new-model-3.0-render
+                - synesis-new-model-3.0
