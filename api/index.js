@@ -10,6 +10,7 @@ import {
   analyzeRegulatoryChange,
   answerFromInstitutionalContext
 } from '../server/src/institutional-engine.js';
+import { runSimulation } from '../server/src/new-model-engine.js';
 
 const gateway = express();
 const openai = config.openaiKey && !/(set_in|paste|replace|your_key)/i.test(config.openaiKey)
@@ -69,9 +70,10 @@ gateway.use(express.json({ limit: '8mb' }));
 gateway.get('/api/health', (req, res) => {
   res.json({
     ok: true,
-    product: 'SYNESIS',
-    version: '4.0.0-prototype',
+    product: 'SYNESIS NEW MODEL',
+    version: '1.0.0-prototype',
     institutionalPrototype: true,
+    universalInstitutionTypes: ['Bank', 'AMC / Fund', 'NBFC', 'Insurance', 'Corporate', 'Professional Services'],
     publicWorkspace: true,
     analysis: 'source-specific-institutional-engines',
     aiConfigured: Boolean(openai),
@@ -79,9 +81,20 @@ gateway.get('/api/health', (req, res) => {
     persistence: 'browser-local-for-public-workspace',
     privateWorkspace: config.databaseUrl ? 'configured-separately' : 'not-configured',
     supportedUploads: ['PDF', 'DOCX', 'TXT', 'CSV', 'JSON', 'MD', 'XML'],
-    activeEngines: ['portfolio-calculation', 'redemption-simulation', 'mandate-mapping', 'regulatory-impact', 'institutional-document-analysis'],
+    activeEngines: ['deep-document-review', 'portfolio-calculation', 'redemption-simulation', 'mandate-mapping', 'regulatory-impact', 'institutional-document-analysis', 'universal-scenario-simulation'],
     time: new Date().toISOString()
   });
+});
+
+gateway.post('/api/public/new-model/simulate', publicLimiter, (req, res) => {
+  try {
+    const simulation = runSimulation(req.body || {});
+    res.set('Cache-Control', 'no-store');
+    res.json({ simulation, processing: { serverStored: false, engine: simulation.engine, generatedAt: simulation.generatedAt } });
+  } catch (error) {
+    console.error('Simulation failed:', error);
+    res.status(400).json({ error: error.message || 'Synesis could not run this simulation.' });
+  }
 });
 
 gateway.post('/api/public/institutional/portfolio', publicLimiter, (req, res) => {
@@ -147,7 +160,7 @@ gateway.post('/api/public/institutional/ask', publicLimiter, async (req, res) =>
     const response = await openai.responses.create({
       model: config.openaiModel,
       store: false,
-      input: `You are SYNESIS, an institutional decision-intelligence assistant. Answer only from the supplied uploaded and calculated context. Separate source facts, calculations and inference. Never invent market data, law, issuer facts, portfolio holdings, approvals or completed actions. If evidence is insufficient, say so.\n\nQUESTION\n${question}\n\nACTIVE CONTEXT\n${JSON.stringify(context).slice(0, 120000)}`
+      input: `You are SYNESIS NEW MODEL, an institutional decision-intelligence assistant. Answer only from the supplied uploaded and calculated context. Separate source facts, calculations and inference. Never invent market data, law, issuer facts, portfolio holdings, approvals or completed actions. If evidence is insufficient, say so.\n\nQUESTION\n${question}\n\nACTIVE CONTEXT\n${JSON.stringify(context).slice(0, 120000)}`
     });
     res.set('Cache-Control', 'no-store');
     return res.json({ answer: response.output_text || fallback, engine: 'openai-institutional-grounded-answer' });
@@ -170,28 +183,16 @@ gateway.post('/api/public/analyze', publicLimiter, async (req, res) => {
     documentType: String(req.body?.documentType || 'Auto-detect').trim().slice(0, 120),
     jurisdiction: String(req.body?.jurisdiction || 'India').trim().slice(0, 100),
     riskAppetite: String(req.body?.riskAppetite || 'Conservative').trim().slice(0, 60),
-    department: String(req.body?.department || 'Legal').trim().slice(0, 100)
+    department: String(req.body?.department || 'Institutional Review').trim().slice(0, 100)
   };
 
   try {
-    const analysis = await analyzeDocument({
-      openai: analysisOpenAI,
-      model: config.openaiModel,
-      text,
-      options
-    });
+    const analysis = await analyzeDocument({ openai: analysisOpenAI, model: config.openaiModel, text, options });
     res.set('Cache-Control', 'no-store');
-    res.json({
-      analysis,
-      processing: {
-        serverStored: false,
-        engine: analysis.engine,
-        aiConfigured: Boolean(openai)
-      }
-    });
+    res.json({ analysis, processing: { serverStored: false, engine: analysis.engine, aiConfigured: Boolean(openai) } });
   } catch (error) {
     console.error('Public analysis failed:', error);
-    res.status(500).json({ error: 'LIVE SYNESIS could not analyse this document.' });
+    res.status(500).json({ error: 'SYNESIS NEW MODEL could not analyse this document.' });
   }
 });
 
@@ -202,7 +203,7 @@ gateway.post('/api/public/ask', publicLimiter, async (req, res) => {
   if (!analysis || typeof analysis !== 'object') return res.status(400).json({ error: 'Active document analysis is required.' });
 
   const findings = Array.isArray(analysis.findings) ? analysis.findings : [];
-  if (!openai) {
+  const fallback = () => {
     const terms = question.toLowerCase().split(/[^a-z0-9]+/).filter(term => term.length > 3);
     const answer = findings
       .map(item => ({ item, score: terms.reduce((sum, term) => sum + Number(JSON.stringify(item).toLowerCase().includes(term)), 0) }))
@@ -211,28 +212,25 @@ gateway.post('/api/public/ask', publicLimiter, async (req, res) => {
       .slice(0, 6)
       .map(entry => `${entry.item.risk_level}: ${entry.item.issue}\nEvidence: ${entry.item.quoted_text}\nPosition: ${entry.item.why_risky_for_bank}\nAction: ${entry.item.recommended_mitigation}`)
       .join('\n\n');
+    return answer || 'The active analysis does not contain enough evidence to answer that question reliably.';
+  };
+
+  if (!openai) {
     res.set('Cache-Control', 'no-store');
-    return res.json({ answer: answer || 'The active analysis does not contain enough evidence to answer that question reliably.', engine: 'baseline-grounded-answer' });
+    return res.json({ answer: fallback(), engine: 'baseline-grounded-answer' });
   }
 
   try {
     const response = await openai.responses.create({
       model: config.openaiModel,
       store: false,
-      input: `You are LIVE SYNESIS. Answer only from the supplied active-document analysis. Do not invent clauses, law, facts or citations. State uncertainty clearly. Address the institution as the Bank.\n\nQUESTION\n${question}\n\nACTIVE ANALYSIS\n${JSON.stringify(analysis).slice(0, 90000)}`
+      input: `You are SYNESIS NEW MODEL. Answer only from the supplied active-document analysis. Do not invent clauses, law, facts or citations. State uncertainty clearly.\n\nQUESTION\n${question}\n\nACTIVE ANALYSIS\n${JSON.stringify(analysis).slice(0, 90000)}`
     });
     res.set('Cache-Control', 'no-store');
-    res.json({ answer: response.output_text || 'No answer was returned.', engine: 'openai-grounded-answer' });
-  } catch (error) {
-    const terms = question.toLowerCase().split(/[^a-z0-9]+/).filter(term => term.length > 3);
-    const answer = findings
-      .map(item => ({ item, score: terms.reduce((sum, term) => sum + Number(JSON.stringify(item).toLowerCase().includes(term)), 0) }))
-      .sort((a, b) => b.score - a.score)
-      .slice(0, 6)
-      .map(entry => `${entry.item.risk_level}: ${entry.item.issue}\nEvidence: ${entry.item.quoted_text}\nPosition: ${entry.item.why_risky_for_bank}\nAction: ${entry.item.recommended_mitigation}`)
-      .join('\n\n');
+    res.json({ answer: response.output_text || fallback(), engine: 'openai-grounded-answer' });
+  } catch {
     res.set('Cache-Control', 'no-store');
-    res.json({ answer: answer || 'The active analysis does not contain enough evidence to answer that question reliably.', engine: 'baseline-grounded-answer' });
+    res.json({ answer: fallback(), engine: 'baseline-grounded-answer' });
   }
 });
 
