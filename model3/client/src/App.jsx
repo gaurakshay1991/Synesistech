@@ -32,10 +32,9 @@ async function readResponse(response) {
 }
 
 import { Login, PasswordSetup, Home, MyWork, Documents, Review } from './screens-core.jsx';
-import {
-  Impact, Obligations, Decisions, Execution, Twin, Packs, Reports, AskSynesis,
-  Simulations, ControlTower, UploadModal
-} from './screens-governance.jsx';
+import { Impact, Obligations, Decisions, Execution } from './screens-control.jsx';
+import { Twin, Packs, Reports, AskSynesis } from './screens-intelligence.jsx';
+import { Simulations, ControlTower, UploadModal } from './screens-strategy.jsx';
 
 export default function App() {
   const [user, setUser] = useState(null);
