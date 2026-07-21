@@ -1,0 +1,31 @@
+services:
+  - type: web
+    name: themis-institutional-os
+    runtime: node
+    plan: starter
+    branch: themis
+    buildCommand: npm install --no-audit --no-fund && npm run build
+    startCommand: npm start
+    healthCheckPath: /api/health
+    autoDeploy: true
+    envVars:
+      - key: NODE_VERSION
+        value: 20.18.1
+      - key: NODE_ENV
+        value: production
+      - key: SYNESIS_PUBLIC_MODE
+        value: "true"
+      - key: SYNESIS_ORGANIZATION_NAME
+        value: Themis
+      - key: SYNESIS_ORGANIZATION_SLUG
+        value: themis
+      - key: DATABASE_URL
+        sync: false
+      - key: JWT_SECRET
+        generateValue: true
+      - key: DATA_ENCRYPTION_KEY
+        generateValue: true
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: OPENAI_MODEL
+        value: gpt-5-mini
