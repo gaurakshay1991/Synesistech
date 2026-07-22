@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Activity, AlertTriangle, Archive, ArrowRight, BarChart3, BellRing, Bot, BrainCircuit,
   Building2, CheckCircle2, ChevronRight, ClipboardCheck, Clock3, Database, FileCheck2,
@@ -28,11 +28,36 @@ export function UploadModal({ request, onClose, onComplete }) {
   const [file, setFile] = useState(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  const [policyBlock, setPolicyBlock] = useState(null);
+  const textRef = useRef(null);
+
   async function submit(e) {
-    e.preventDefault(); setBusy(true); setError('');
-    const body = new FormData(); Object.entries(form).forEach(([key,value]) => body.append(key,value)); if (file) body.append('file', file);
-    try { const data = await request('/documents/analyze', { method: 'POST', body }); onComplete(data); }
-    catch (err) { setError(err.message); } finally { setBusy(false); }
+    e.preventDefault();
+    setError('');
+    if (!file && !form.text.trim()) {
+      setError('Choose a permitted file or paste the document text before starting analysis.');
+      textRef.current?.focus();
+      return;
+    }
+    setBusy(true);
+    const body = new FormData();
+    Object.entries(form).forEach(([key,value]) => body.append(key,value));
+    if (file) body.append('file', file);
+    try {
+      const data = await request('/documents/analyze', { method: 'POST', body });
+      onComplete(data);
+    } catch (err) {
+      if (err.code === 'CORPORATE_FILE_TRANSFER_BLOCKED') {
+        setPolicyBlock({ fileName: err.blockedFileName || file?.name || 'Selected file' });
+        setFile(null);
+        setTimeout(() => textRef.current?.focus(), 0);
+      } else {
+        setError(err.message);
+      }
+    } finally {
+      setBusy(false);
+    }
   }
-  return <Modal title="Analyse and compile institutional evidence" onClose={onClose} wide><form className="form-grid" onSubmit={submit}><label className="full upload-drop"><UploadCloud /><strong>{file ? file.name : 'Choose PDF, DOCX, TXT, CSV, JSON, Markdown or XML'}</strong><span>Original file is processed in memory; extracted text is encrypted in persistence.</span><input type="file" accept=".pdf,.docx,.txt,.csv,.json,.md,.xml" onChange={e => setFile(e.target.files?.[0] || null)} /></label><label>Title<input value={form.title} onChange={e => setForm({...form,title:e.target.value})} placeholder="Optional; inferred from file name" /></label><label>Matter<input required value={form.matter} onChange={e => setForm({...form,matter:e.target.value})} placeholder="e.g. Vendor onboarding agreement" /></label><label>Document type<select value={form.documentType} onChange={e => setForm({...form,documentType:e.target.value})}>{['Auto-detect','Agreement','Policy','Regulation / circular','Legal opinion','Control evidence','Investigation pack','Transaction document'].map(x=><option key={x}>{x}</option>)}</select></label><label>Jurisdiction<input value={form.jurisdiction} onChange={e => setForm({...form,jurisdiction:e.target.value})} /></label><label>Risk appetite<select value={form.riskAppetite} onChange={e => setForm({...form,riskAppetite:e.target.value})}>{['Conservative','Balanced','Commercially calibrated'].map(x=><option key={x}>{x}</option>)}</select></label><label>Analysis mode<select value={form.analysisMode} onChange={e => setForm({...form,analysisMode:e.target.value})}>{['Deep','Standard','Quick'].map(x=><option key={x}>{x}</option>)}</select></label><label className="full">Analysis objective<textarea value={form.objective} onChange={e => setForm({...form,objective:e.target.value})} /></label><div className="divider full"><span>or paste text</span></div><label className="full">Pasted source text<textarea className="large-text" value={form.text} onChange={e => setForm({...form,text:e.target.value})} placeholder="Paste a document when no file is selected" /></label>{error && <div className="form-error full">{error}</div>}<div className="form-actions full"><button type="button" className="ghost" onClick={onClose}>Cancel</button><button className="primary" disabled={busy}>{busy ? <><RefreshCw className="spin" size={17} /> Running multipass analysis…</> : <><Sparkles size={17} /> Analyse and compile</>}</button></div></form></Modal>;
+
+  return <Modal title="Analyse and compile institutional evidence" onClose={onClose} wide><form className="form-grid" onSubmit={submit}><label className="full upload-drop"><UploadCloud /><strong>{file ? file.name : 'Choose PDF, DOCX, TXT, CSV, JSON, Markdown or XML'}</strong><span>Uploads remain subject to your organisation's DLP and external-transfer policy. Synesis cannot bypass those controls.</span><input type="file" accept=".pdf,.docx,.txt,.csv,.json,.md,.xml" onChange={e => { setFile(e.target.files?.[0] || null); setPolicyBlock(null); }} /></label>{policyBlock && <div className="form-error full"><AlertTriangle size={18} /><div><strong>File transfer stopped by your organisation</strong><p>{policyBlock.fileName} did not reach Synesis. The platform has removed the blocked file from this form and retained your other entries. Paste text only where your organisation permits external processing; otherwise request domain allowlisting or an internal deployment.</p><button type="button" className="text-button" onClick={() => textRef.current?.focus()}>Go to approved text entry <ArrowRight size={15} /></button></div></div>}<label>Title<input value={form.title} onChange={e => setForm({...form,title:e.target.value})} placeholder="Optional; inferred from file name" /></label><label>Matter<input required value={form.matter} onChange={e => setForm({...form,matter:e.target.value})} placeholder="e.g. Vendor onboarding agreement" /></label><label>Document type<select value={form.documentType} onChange={e => setForm({...form,documentType:e.target.value})}>{['Auto-detect','Agreement','Policy','Regulation / circular','Legal opinion','Control evidence','Investigation pack','Transaction document'].map(x=><option key={x}>{x}</option>)}</select></label><label>Jurisdiction<input value={form.jurisdiction} onChange={e => setForm({...form,jurisdiction:e.target.value})} /></label><label>Risk appetite<select value={form.riskAppetite} onChange={e => setForm({...form,riskAppetite:e.target.value})}>{['Conservative','Balanced','Commercially calibrated'].map(x=><option key={x}>{x}</option>)}</select></label><label>Analysis mode<select value={form.analysisMode} onChange={e => setForm({...form,analysisMode:e.target.value})}>{['Deep','Standard','Quick'].map(x=><option key={x}>{x}</option>)}</select></label><label className="full">Analysis objective<textarea value={form.objective} onChange={e => setForm({...form,objective:e.target.value})} /></label><div className="divider full"><span>or use approved text entry</span></div><label className="full">Pasted source text<textarea ref={textRef} className="large-text" value={form.text} onChange={e => setForm({...form,text:e.target.value})} placeholder="Paste document text only where your organisation permits external processing" /></label>{error && <div className="form-error full">{error}</div>}<div className="form-actions full"><button type="button" className="ghost" onClick={onClose}>Cancel</button><button className="primary" disabled={busy}>{busy ? <><RefreshCw className="spin" size={17} /> Running multipass analysis…</> : <><Sparkles size={17} /> Analyse and compile</>}</button></div></form></Modal>;
 }
