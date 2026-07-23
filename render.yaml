@@ -3,7 +3,7 @@ services:
     name: synesistech
     runtime: node
     plan: free
-    buildCommand: npm ci --no-audit --no-fund && npm run build
+    buildCommand: npm install --no-audit --no-fund && npm run check
     startCommand: npm start
     healthCheckPath: /api/health
     autoDeploy: true
