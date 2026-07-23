@@ -2,11 +2,12 @@ services:
   - type: web
     name: synesistech
     runtime: node
+    region: singapore
     plan: free
     buildCommand: npm install --no-audit --no-fund && npm run check
     startCommand: npm start
     healthCheckPath: /api/health
-    autoDeploy: true
+    autoDeployTrigger: checksPass
     envVars:
       - key: NODE_ENV
         value: production
@@ -16,17 +17,3 @@ services:
         value: gpt-5-mini
       - key: MAX_UPLOAD_MB
         value: "15"
-      - key: DATABASE_URL
-        sync: false
-      - key: JWT_SECRET
-        sync: false
-      - key: DATA_ENCRYPTION_KEY
-        sync: false
-      - key: BOOTSTRAP_ADMIN_NAME
-        value: Platform Administrator
-      - key: BOOTSTRAP_ADMIN_EMAIL
-        sync: false
-      - key: BOOTSTRAP_ADMIN_PASSWORD
-        sync: false
-      - key: OPENAI_API_KEY
-        sync: false
