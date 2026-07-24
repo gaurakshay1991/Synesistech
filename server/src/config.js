@@ -14,9 +14,16 @@ export function normalizeDatabaseUrl(value = '') {
 }
 
 export function normalizeOpenAIModel(value = '') {
-  const requested = String(value || 'gpt-5.6-sol').trim();
-  const deprecatedChatAliases = new Set(['gpt-5.6-thinking', 'chatgpt-gpt-5.6']);
-  return deprecatedChatAliases.has(requested.toLowerCase()) ? 'gpt-5.6-sol' : requested;
+  const requested = String(value || 'gpt-5.6-sol').trim().toLowerCase();
+  const aliases = new Map([
+    ['5.6', 'gpt-5.6'],
+    ['5.6-sol', 'gpt-5.6-sol'],
+    ['5.6-terra', 'gpt-5.6-terra'],
+    ['5.6-luna', 'gpt-5.6-luna'],
+    ['gpt-5.6-thinking', 'gpt-5.6-sol'],
+    ['chatgpt-gpt-5.6', 'gpt-5.6-sol']
+  ]);
+  return aliases.get(requested) || requested;
 }
 
 const production = process.env.NODE_ENV === 'production' || Boolean(process.env.VERCEL);
