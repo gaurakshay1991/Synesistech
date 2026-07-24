@@ -14,9 +14,9 @@ export function normalizeDatabaseUrl(value = '') {
 }
 
 export function normalizeOpenAIModel(value = '') {
-  const requested = String(value || 'gpt-5-mini').trim();
-  const chatOnlyAliases = new Set(['gpt-5.6', 'gpt-5.6-thinking', 'chatgpt-gpt-5.6']);
-  return chatOnlyAliases.has(requested.toLowerCase()) ? 'gpt-5-mini' : requested;
+  const requested = String(value || 'gpt-5.6-terra').trim();
+  const deprecatedChatAliases = new Set(['gpt-5.6-thinking', 'chatgpt-gpt-5.6']);
+  return deprecatedChatAliases.has(requested.toLowerCase()) ? 'gpt-5.6-terra' : requested;
 }
 
 const production = process.env.NODE_ENV === 'production' || Boolean(process.env.VERCEL);
