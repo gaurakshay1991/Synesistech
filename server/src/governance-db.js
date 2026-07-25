@@ -1,7 +1,8 @@
 import { neon } from '@neondatabase/serverless';
 import { config } from './config.js';
 
-const GOVERNANCE_MIGRATION = '2026-07-26-human-oversight-governance-v1';
+const GOVERNANCE_MIGRATION = '2026-07-26-human-oversight-governance-v2';
+const UUID_PATTERN = '^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$';
 
 const statements = [
   `CREATE OR REPLACE FUNCTION enforce_synesis_document_governance()
@@ -52,7 +53,8 @@ const statements = [
          RAISE EXCEPTION 'Incomplete or fallback analysis cannot receive a final status.';
        END IF;
 
-       IF jsonb_typeof(NEW.decisions) <> 'array' OR jsonb_array_length(NEW.decisions) = 0 THEN
+       IF jsonb_typeof(NEW.decisions) IS DISTINCT FROM 'array'
+          OR COALESCE(jsonb_array_length(NEW.decisions), 0) = 0 THEN
          RAISE EXCEPTION 'A named human review decision is required before final status.';
        END IF;
 
@@ -61,7 +63,7 @@ const statements = [
        rationale := btrim(COALESCE(latest_decision->>'comment', ''));
        decision_action := COALESCE(latest_decision->>'status', '');
 
-       IF reviewer_id_text !~* '^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$' THEN
+       IF reviewer_id_text !~* '${UUID_PATTERN}' THEN
          RAISE EXCEPTION 'A valid named reviewer is required before final status.';
        END IF;
 
@@ -92,18 +94,37 @@ const statements = [
    BEFORE INSERT OR UPDATE ON documents
    FOR EACH ROW
    EXECUTE FUNCTION enforce_synesis_document_governance()`,
-  `UPDATE documents
+  `UPDATE documents AS d
    SET status = CASE
-     WHEN COALESCE((analysis #>> '{analysis_details,live_ai_used}')::boolean, false)
-       THEN CASE
-         WHEN status IN ('AI Review Complete', 'Analysis Complete') THEN 'Pending Human Review'
-         ELSE status
-       END
-     ELSE 'Analysis Unavailable'
+     WHEN NOT COALESCE((d.analysis #>> '{analysis_details,live_ai_used}')::boolean, false)
+       THEN 'Analysis Unavailable'
+     WHEN d.status IN ('AI Review Complete', 'Analysis Complete')
+       THEN 'Pending Human Review'
+     WHEN d.status IN ('Final Approved', 'Rejected', 'Closed')
+       AND NOT (
+         jsonb_typeof(d.decisions) = 'array'
+         AND COALESCE(jsonb_array_length(d.decisions), 0) > 0
+         AND COALESCE(d.decisions->0->>'userId', '') ~* '${UUID_PATTERN}'
+         AND length(btrim(COALESCE(d.decisions->0->>'comment', ''))) >= 30
+         AND COALESCE(d.decisions->0->>'status', '') IN ('Resolved', 'Accepted With Controls', 'Rejected')
+         AND EXISTS (
+           SELECT 1
+           FROM users AS u
+           WHERE u.id = CASE
+             WHEN COALESCE(d.decisions->0->>'userId', '') ~* '${UUID_PATTERN}'
+               THEN (d.decisions->0->>'userId')::uuid
+             ELSE NULL
+           END
+             AND u.organization_id = d.organization_id
+             AND u.is_active = true
+             AND u.role IN ('admin', 'legal', 'compliance', 'risk')
+         )
+       )
+       THEN 'Pending Human Review'
+     ELSE d.status
    END,
    updated_at = now()
-   WHERE deleted_at IS NULL
-     AND status NOT IN ('Final Approved', 'Rejected', 'Closed')`,
+   WHERE d.deleted_at IS NULL`,
   `INSERT INTO schema_migrations (version)
    VALUES ('${GOVERNANCE_MIGRATION}')
    ON CONFLICT (version) DO NOTHING`
