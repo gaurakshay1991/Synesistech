@@ -26,12 +26,20 @@ export function normalizeOpenAIModel(value = '') {
   return aliases.get(requested) || requested;
 }
 
+function normalizeAiMode(value = '') {
+  const requested = String(value || 'prototype').trim().toLowerCase();
+  return ['prototype', 'live', 'auto'].includes(requested) ? requested : 'prototype';
+}
+
 const production = process.env.NODE_ENV === 'production' || Boolean(process.env.VERCEL);
 const publicMode = String(process.env.SYNESIS_PUBLIC_MODE ?? 'true').toLowerCase() !== 'false';
+const aiMode = normalizeAiMode(process.env.SYNESIS_AI_MODE);
+const configuredOpenAIKey = process.env.OPENAI_API_KEY || '';
 
 export const config = Object.freeze({
   production,
   publicMode,
+  aiMode,
   port: Number(process.env.PORT || 3000),
   clientDist: path.join(ROOT_DIR, 'client', 'dist'),
   databaseUrl: normalizeDatabaseUrl(process.env.DATABASE_URL),
@@ -40,7 +48,8 @@ export const config = Object.freeze({
     : path.join(ROOT_DIR, 'server', 'data', 'live-synesis-store.json')),
   jwtSecret: process.env.JWT_SECRET || (production ? '' : 'live-synesis-local-development-secret'),
   encryptionSecret: process.env.DATA_ENCRYPTION_KEY || process.env.JWT_SECRET || (production ? '' : 'live-synesis-local-encryption-secret'),
-  openaiKey: process.env.OPENAI_API_KEY || '',
+  openaiKey: aiMode === 'prototype' ? '' : configuredOpenAIKey,
+  openaiConfigured: Boolean(configuredOpenAIKey),
   openaiModel: normalizeOpenAIModel(process.env.OPENAI_MODEL),
   maxUploadMb: Math.max(1, Math.min(25, Number(process.env.MAX_UPLOAD_MB || 15))),
   organizationName: process.env.SYNESIS_ORGANIZATION_NAME || 'Synesis',
