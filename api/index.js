@@ -4,6 +4,12 @@ import OpenAI from 'openai';
 import { config } from '../server/src/config.js';
 import { analyzeDocument } from '../server/src/analysis-engine.js';
 import {
+  HUMAN_OVERSIGHT_POLICY,
+  applyHumanOversight,
+  liveAnalysisFailure,
+  providerFailureResponse
+} from '../server/src/governance.js';
+import {
   analyzeInstitutionalDocument,
   analyzeMandate,
   analyzePortfolioCsv,
@@ -81,16 +87,26 @@ function sendAnalysis(res, analysis, extra = {}) {
       serverStored: false,
       sourceSpecific: true,
       engine: analysis.engine,
+      humanReviewRequired: true,
+      governance: HUMAN_OVERSIGHT_POLICY,
       ...extra
     }
   });
+}
+
+function sendProviderFailure(res, error) {
+  const failure = providerFailureResponse(error, activeModel);
+  res.set('Cache-Control', 'no-store');
+  return res.status(failure.status).json(failure.body);
 }
 
 function institutionalFailure(res, error, fallback = 'LIVE SYNESIS could not analyse this institutional source.') {
   console.error('Institutional analysis failed:', error);
   res.status(error.status || 500).json({
     error: error.status ? error.message : fallback,
-    detail: String(error.message || '').slice(0, 240)
+    detail: String(error.message || '').slice(0, 240),
+    analysisCompleted: false,
+    humanReviewRequired: true
   });
 }
 
@@ -140,16 +156,18 @@ gateway.get('/api/health', (req, res) => {
   res.json({
     ok: true,
     product: 'LIVE SYNESIS',
-    version: '4.3.1-themis-open-intelligence',
+    version: '4.4.0-human-governed',
     institutionalWorkspace: true,
-    institutionalPrototype: true,
+    institutionalPrototype: false,
     universalInstitutionTypes: ['Bank', 'AMC / Fund', 'NBFC', 'Insurance', 'Corporate', 'Professional Services'],
     publicWorkspace: true,
     analysis: 'live-multipass-decision-intelligence-plus-open-world-research-calculation-and-simulation',
     aiConfigured: Boolean(openai),
+    aiReadiness: openai ? 'credentials-configured-billing-not-probed' : 'not-configured',
     aiProvider: usingAIGateway ? 'vercel-ai-gateway' : directOpenAIKey ? 'openai-direct' : 'not-configured',
     model: activeModel,
     openWorldAnalysis: true,
+    humanOversight: HUMAN_OVERSIGHT_POLICY,
     themis: {
       active: Boolean(openai),
       capabilities: [
@@ -200,7 +218,9 @@ gateway.post('/api/public/new-model/simulate', publicLimiter, (req, res) => {
       processing: {
         serverStored: false,
         engine: simulation.engine,
-        generatedAt: simulation.generatedAt
+        generatedAt: simulation.generatedAt,
+        humanReviewRequired: true,
+        governance: HUMAN_OVERSIGHT_POLICY
       }
     });
   } catch (error) {
@@ -266,14 +286,8 @@ gateway.post('/api/public/institutional/ask', publicLimiter, async (req, res) =>
     return res.status(400).json({ error: 'Enter a question about the active uploaded context.' });
   }
 
-  const fallback = answerFromInstitutionalContext(question, context);
   if (!openai) {
-    res.set('Cache-Control', 'no-store');
-    return res.json({
-      answer: `${fallback}\n\nLive external intelligence is unavailable because no model provider is configured.`,
-      engine: 'institutional-grounded-fallback',
-      sources: []
-    });
+    return sendProviderFailure(res, new Error('OPENAI_API_KEY is not configured.'));
   }
 
   try {
@@ -286,15 +300,10 @@ gateway.post('/api/public/institutional/ask', publicLimiter, async (req, res) =>
       options: researchOptions(req)
     });
     res.set('Cache-Control', 'no-store');
-    return res.json(result);
+    return res.json({ ...result, humanReviewRequired: true, governance: HUMAN_OVERSIGHT_POLICY });
   } catch (error) {
-    console.error('Themis institutional research fell back:', error);
-    res.set('Cache-Control', 'no-store');
-    return res.json({
-      answer: `${fallback}\n\nThemis could not complete live external research for this request.`,
-      engine: 'institutional-grounded-fallback',
-      sources: []
-    });
+    console.error('Themis institutional research failed:', error);
+    return sendProviderFailure(res, error);
   }
 });
 
@@ -337,9 +346,22 @@ gateway.post('/api/public/analyze', publicLimiter, async (req, res) => {
   };
 
   try {
-    let analysis = await analyzeDocument({ openai: analysisOpenAI, model: activeModel, text, options });
+    let analysis = applyHumanOversight(
+      await analyzeDocument({ openai: analysisOpenAI, model: activeModel, text, options }),
+      { text, options }
+    );
 
-    if (openai && analysis.analysis_details?.live_ai_used) {
+    const failure = liveAnalysisFailure(analysis);
+    if (failure) {
+      console.error('Live document analysis was not completed:', analysis.analysis_details?.failure);
+      return sendProviderFailure(res, {
+        status: failure.httpStatus === 429 ? 429 : undefined,
+        code: failure.code,
+        message: analysis.analysis_details?.failure || failure.userMessage
+      });
+    }
+
+    if (openai) {
       try {
         const openIntelligence = await enrichAnalysisWithOpenIntelligence({
           client: analysisOpenAI,
@@ -381,17 +403,19 @@ gateway.post('/api/public/analyze', publicLimiter, async (req, res) => {
       }
     }
 
+    analysis = applyHumanOversight(analysis, { text, options });
     sendAnalysis(res, analysis, {
       aiConfigured: Boolean(openai),
       aiProvider: usingAIGateway ? 'vercel-ai-gateway' : directOpenAIKey ? 'openai-direct' : 'not-configured',
       mode: analysis.analysis_details?.mode || options.analysisMode,
-      liveAiUsed: Boolean(analysis.analysis_details?.live_ai_used),
+      liveAiUsed: true,
       openIntelligenceUsed: Boolean(analysis.analysis_details?.open_intelligence_used),
       independentPasses: analysis.analysis_details?.independent_passes || 0,
       currentSourcesRequested: true
     });
   } catch (error) {
-    institutionalFailure(res, error, 'LIVE SYNESIS could not analyse this document.');
+    console.error('LIVE SYNESIS live analysis failed:', error);
+    return sendProviderFailure(res, error);
   }
 });
 
@@ -404,14 +428,15 @@ gateway.post('/api/public/ask', publicLimiter, async (req, res) => {
   if (!analysis || typeof analysis !== 'object') {
     return res.status(400).json({ error: 'Active document analysis is required.' });
   }
-
-  if (!openai) {
-    res.set('Cache-Control', 'no-store');
-    return res.json({
-      answer: `${fallbackAnswer(analysis, question)}\n\nLive external intelligence is unavailable because no model provider is configured.`,
-      engine: 'emergency-analysis-grounded-answer',
-      sources: []
+  if (!analysis.analysis_details?.live_ai_used) {
+    return res.status(409).json({
+      error: 'Ask Synesis is unavailable because the active record is not a completed live analysis.',
+      code: 'INCOMPLETE_ANALYSIS',
+      analysisCompleted: false
     });
+  }
+  if (!openai) {
+    return sendProviderFailure(res, new Error('OPENAI_API_KEY is not configured.'));
   }
 
   try {
@@ -426,15 +451,10 @@ gateway.post('/api/public/ask', publicLimiter, async (req, res) => {
       })
     });
     res.set('Cache-Control', 'no-store');
-    return res.json(result);
+    return res.json({ ...result, humanReviewRequired: true, governance: HUMAN_OVERSIGHT_POLICY });
   } catch (error) {
-    console.error('Themis active-matter research fell back:', error);
-    res.set('Cache-Control', 'no-store');
-    return res.json({
-      answer: `${fallbackAnswer(analysis, question)}\n\nThemis could not complete live external research for this request.`,
-      engine: 'emergency-analysis-grounded-answer',
-      sources: []
-    });
+    console.error('Themis active-matter research failed:', error);
+    return sendProviderFailure(res, error);
   }
 });
 
