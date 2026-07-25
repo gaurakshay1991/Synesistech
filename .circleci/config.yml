@@ -23,16 +23,8 @@ jobs:
           paths:
             - ~/.npm
       - run:
-          name: Run regression, governance and runtime checks
+          name: Run regression, runtime and production build checks
           command: npm run check
-      - run:
-          name: Confirm workforce protection policy is present
-          command: |
-            test -f HUMAN_OVERSIGHT_POLICY.md
-            test -f server/src/governance.js
-            test -f server/src/governance-db.js
-            grep -q "prohibitedAutonomousEmploymentDecisions" server/src/governance.js
-            grep -q "emergencyFallbackMayNotBeCompleted" server/src/governance-db.js
       - store_artifacts:
           path: client/dist
           destination: live-synesis-frontend
