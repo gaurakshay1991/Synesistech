@@ -3,6 +3,7 @@ import { config } from './config.js';
 import { synchronizeBootstrapAdmin } from './bootstrap-admin.js';
 import { synchronizeGovernanceControls } from './governance-db.js';
 import mcpRouter from './mcp.js';
+import privateGovernanceMiddleware from './private-governance-middleware.js';
 
 await synchronizeBootstrapAdmin();
 const governance = await synchronizeGovernanceControls();
@@ -13,6 +14,7 @@ app.disable('x-powered-by');
 app.set('trust proxy', 1);
 app.use(express.json({ limit: '8mb' }));
 app.use(mcpRouter);
+app.use(privateGovernanceMiddleware);
 app.use(gateway);
 
 const server = app.listen(config.port, '0.0.0.0', () => {
