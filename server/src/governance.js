@@ -27,7 +27,7 @@ export function classifyProviderError(error = {}) {
   const message = compact(error?.message || error?.error?.message || error, 500);
   const searchable = `${rawCode} ${message}`.toLowerCase();
 
-  if (status === 429 && /insufficient_quota|exceeded.{0,40}quota|billing|credit balance|current quota/.test(searchable)) {
+  if (/openai_quota_exceeded|quota_exceeded|insufficient_quota|exceeded.{0,40}quota|billing|credit balance|current quota/.test(searchable)) {
     return {
       code: 'OPENAI_QUOTA_EXCEEDED',
       httpStatus: 503,
@@ -141,16 +141,19 @@ export function liveAnalysisFailure(analysis = {}) {
 }
 
 export function providerFailureResponse(error, model) {
-  const failure = classifyProviderError(error);
+  const structured = error?.code && error?.userMessage && Number.isFinite(Number(error?.httpStatus))
+    ? error
+    : classifyProviderError(error);
   return {
-    status: failure.httpStatus,
+    status: Number(structured.httpStatus) || 503,
     body: {
-      error: failure.userMessage,
-      code: failure.code,
-      retryable: failure.retryable,
-      operatorAction: failure.operatorAction,
+      error: structured.userMessage,
+      code: structured.code,
+      retryable: Boolean(structured.retryable),
+      operatorAction: structured.operatorAction,
       analysisCompleted: false,
       fallbackSuppressed: true,
+      humanReviewRequired: true,
       model
     }
   };
