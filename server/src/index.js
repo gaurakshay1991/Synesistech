@@ -1,27 +1,35 @@
 import express from 'express';
 import { config } from './config.js';
 import { synchronizeBootstrapAdmin } from './bootstrap-admin.js';
-import { synchronizeGovernanceControls } from './governance-db.js';
 import mcpRouter from './mcp.js';
-import privateGovernanceMiddleware from './private-governance-middleware.js';
 
 await synchronizeBootstrapAdmin();
-const governance = await synchronizeGovernanceControls();
-const { default: gateway } = await import('../../api/index.js');
+const { default: privateApp } = await import('./app.js');
 
 const app = express();
 app.disable('x-powered-by');
 app.set('trust proxy', 1);
-app.use(express.json({ limit: '8mb' }));
+
+app.get('/health', (req, res) => {
+  res.json({
+    ok: true,
+    product: 'LIVE SYNESIS',
+    mode: config.aiMode,
+    storage: config.databaseUrl ? 'neon-postgres' : 'local',
+    aiConfigured: config.openaiConfigured,
+    model: config.openaiModel,
+    time: new Date().toISOString()
+  });
+});
+
 app.use(mcpRouter);
-app.use(privateGovernanceMiddleware);
-app.use(gateway);
+app.use(privateApp);
 
 const server = app.listen(config.port, '0.0.0.0', () => {
   console.log(`LIVE SYNESIS 4 running on port ${config.port}`);
   console.log('MCP Streamable HTTP endpoint: /mcp');
-  console.log(`Institutional multipass analysis: ${config.openaiKey ? `configured with ${config.openaiModel}` : 'not configured'}`);
-  console.log(`Human oversight controls: ${governance.configured ? `database-enforced (${governance.migration})` : 'application-enforced'}`);
+  console.log(`Storage: ${config.databaseUrl ? 'Neon Postgres' : 'local development store'}`);
+  console.log(`Analysis mode: ${config.aiMode}${config.aiMode === 'prototype' ? ' (quota-independent deterministic engine)' : ` (${config.openaiModel})`}`);
 });
 
 function shutdown(signal) {
