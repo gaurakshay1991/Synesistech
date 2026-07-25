@@ -7,6 +7,7 @@ import {
   Landmark,
   ShieldCheck
 } from 'lucide-react';
+import HumanOversightBanner from './HumanOversightBanner.jsx';
 import InstitutionalApp from './InstitutionalApp.jsx';
 import InstitutionalLab from './InstitutionalLab.jsx';
 import RegulatoryCommand from './RegulatoryCommand.jsx';
@@ -78,6 +79,8 @@ export default function RootApp() {
           <ShieldCheck size={14} />
         </div>
       </header>
+
+      <HumanOversightBanner />
 
       {mode === 'home' && <ThemisHome onOpen={setMode} />}
       {mode === 'decision' && <InstitutionalApp />}
