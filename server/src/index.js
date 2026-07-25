@@ -1,9 +1,11 @@
 import express from 'express';
 import { config } from './config.js';
 import { synchronizeBootstrapAdmin } from './bootstrap-admin.js';
+import { synchronizeGovernanceControls } from './governance-db.js';
 import mcpRouter from './mcp.js';
 
 await synchronizeBootstrapAdmin();
+const governance = await synchronizeGovernanceControls();
 const { default: gateway } = await import('../../api/index.js');
 
 const app = express();
@@ -16,7 +18,8 @@ app.use(gateway);
 const server = app.listen(config.port, '0.0.0.0', () => {
   console.log(`LIVE SYNESIS 4 running on port ${config.port}`);
   console.log('MCP Streamable HTTP endpoint: /mcp');
-  console.log(`Institutional multipass analysis: ${config.openaiKey ? `configured with ${config.openaiModel}` : 'emergency fallback only'}`);
+  console.log(`Institutional multipass analysis: ${config.openaiKey ? `configured with ${config.openaiModel}` : 'not configured'}`);
+  console.log(`Human oversight controls: ${governance.configured ? `database-enforced (${governance.migration})` : 'application-enforced'}`);
 });
 
 function shutdown(signal) {
