@@ -1,12 +1,10 @@
 import express from 'express';
 import { config } from './config.js';
 import { synchronizeBootstrapAdmin } from './bootstrap-admin.js';
-import { synchronizeAdminHandoff } from './admin-handoff-reset.js';
 import { synchronizeAnalysisProvenance } from './analysis-provenance.js';
 import mcpRouter from './mcp.js';
 
 await synchronizeBootstrapAdmin();
-await synchronizeAdminHandoff();
 await synchronizeAnalysisProvenance();
 const { default: privateApp } = await import('./app.js');
 
