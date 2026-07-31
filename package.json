@@ -11,11 +11,13 @@
     "server"
   ],
   "scripts": {
+    "setup:local": "node scripts/setup-local.mjs",
+    "doctor": "node scripts/dev-doctor.mjs",
     "dev": "concurrently \"npm --workspace server run dev\" \"npm --workspace client run dev\"",
     "start": "npm --workspace server start",
     "build": "npm --workspace client run build",
     "test": "npm --workspace server test && npm run check:runtime",
-    "check:runtime": "node --check api/index.js && node --check server/src/index.js && node --check server/src/app.js && node --check server/src/mcp.js && node --check server/src/analysis-provenance.js",
+    "check:runtime": "node --check api/index.js && node --check server/src/index.js && node --check server/src/app.js && node --check server/src/mcp.js && node --check server/src/analysis-provenance.js && node --check scripts/setup-local.mjs && node --check scripts/dev-doctor.mjs",
     "check": "npm test && npm run build",
     "db:migrate": "npm --workspace server run db:migrate",
     "replit": "npm install --no-audit --no-fund && npm run build && NODE_ENV=production npm run start"
