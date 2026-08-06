@@ -10,12 +10,12 @@ test('pasted text is extracted and hashed', async () => {
 
 test('symbolic engine detects material legal protections and produces a trace', () => {
   const result = symbolicClauseAssessment(
-    'The supplier shall have unlimited liability for all losses. The customer may audit records. Security incidents shall be notified within 24 hours.',
+    'The supplier shall have unlimited liability for all losses. The customer has audit rights and access to records. Security incidents shall be notified within 24 hours.',
     { matter: 'Vendor agreement', jurisdiction: 'India' }
   );
-  assert.ok(result.rules_fired.some(item => item.id === 'LIABILITY-UNLIMITED'));
-  assert.ok(result.positive_controls.some(item => item.id === 'AUDIT-RIGHT-PRESENT'));
-  assert.ok(result.positive_controls.some(item => item.id === 'INCIDENT-TIMING-PRESENT'));
+  assert.ok(result.rules_fired.some(item => item.id === 'R-LIAB-001'));
+  assert.ok(result.positive_controls.some(item => item.id === 'P-AUDIT-002'));
+  assert.ok(result.positive_controls.some(item => item.id === 'P-INC-003'));
   assert.equal(result.clause_fingerprint.length, 64);
   assert.ok(result.metadata.rulesEvaluated >= 10);
 });
@@ -32,6 +32,6 @@ test('fallback is explicit, document-specific and neuro-symbolically traceable',
   assert.ok(result.findings.some(item => /unlimited|uncapped/i.test(item.issue)));
   assert.ok(result.neuro_symbolic.symbolic_signal_score >= 1);
   assert.ok(result.reasoning_trace.length >= 1);
-  assert.equal(result.litigation_risk.status, 'Illustrative indicator — not legal prediction');
+  assert.equal(result.litigation_risk.status, 'Scenario indicator only — not a court-outcome prediction');
   assert.ok(Array.isArray(result.clause_memory_candidates));
 });
