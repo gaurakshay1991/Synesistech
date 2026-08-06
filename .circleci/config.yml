@@ -13,13 +13,13 @@ jobs:
       - checkout
       - restore_cache:
           keys:
-            - live-synesis-npm-v2-{{ arch }}-{{ checksum "package-lock.json" }}
-            - live-synesis-npm-v2-{{ arch }}-
+            - live-synesis-npm-v3-{{ arch }}-{{ checksum "package-lock.json" }}
+            - live-synesis-npm-v3-{{ arch }}-
       - run:
-          name: Install LIVE SYNESIS dependencies
-          command: npm install --no-audit --no-fund
+          name: Install locked LIVE SYNESIS dependencies
+          command: npm ci --no-audit --no-fund
       - save_cache:
-          key: live-synesis-npm-v2-{{ arch }}-{{ checksum "package-lock.json" }}
+          key: live-synesis-npm-v3-{{ arch }}-{{ checksum "package-lock.json" }}
           paths:
             - ~/.npm
       - run:
@@ -35,13 +35,13 @@ jobs:
       - checkout
       - restore_cache:
           keys:
-            - model3-npm-v1-{{ arch }}-{{ checksum "model3/package.json" }}
-            - model3-npm-v1-{{ arch }}-
+            - model3-npm-v2-{{ arch }}-{{ checksum "model3/package-lock.json" }}
+            - model3-npm-v2-{{ arch }}-
       - run:
-          name: Install Model 3 dependencies
-          command: cd model3 && npm install --no-audit --no-fund
+          name: Install locked Model 3 dependencies
+          command: cd model3 && npm ci --no-audit --no-fund
       - save_cache:
-          key: model3-npm-v1-{{ arch }}-{{ checksum "model3/package.json" }}
+          key: model3-npm-v2-{{ arch }}-{{ checksum "model3/package-lock.json" }}
           paths:
             - ~/.npm
       - run:
