@@ -1,8 +1,8 @@
 export const seedState = {
-  schemaVersion: 4,
+  schemaVersion: 5,
   product: {
     name: 'Synesis',
-    edition: 'Neuro-Symbolic Legal Intelligence Platform',
+    edition: 'Live Neuro-Symbolic Legal Intelligence Platform',
     operatingPrinciple: 'Evidence before inference; rules before autonomous action; accountable human approval for material decisions.',
     disclaimer: 'Synesis is decision-support software. It does not replace authorised legal advice, regulatory verification or accountable human judgment.'
   },
@@ -18,7 +18,9 @@ export const seedState = {
     regulatoryUpdatesOpen: 4,
     clauseMemoryCoverage: 74,
     governanceReadiness: 68,
-    simulationCount: 4
+    simulationCount: 4,
+    liveSources: 0,
+    liveChanges24h: 0
   },
   alerts: [
     { id: 'a1', severity: 'Critical', title: 'RBI outsourcing change affects 14 controls', owner: 'Compliance', due: '2026-08-15', why: 'Effective-date gap and vendor audit-right mismatch', next: 'Approve impact plan' },
@@ -66,6 +68,16 @@ export const seedState = {
     { id: 'm2', title: 'Partner enforcement-event review', date: '2026-02-08', outcome: 'Enhanced monitoring', lesson: 'Immediate suspension was disproportionate; assurance rights and transaction caps reduced exposure.', similarity: 86 },
     { id: 'm3', title: 'Technology provider versus regulated intermediary classification', date: '2025-09-19', outcome: 'Technology-only model', lesson: 'Customer solicitation, discretion and transaction execution must remain with the regulated entity.', similarity: 82 }
   ],
+  liveBrain: {
+    status: 'Configured — awaiting first autonomous sync',
+    lastSyncAt: null,
+    lastDetectedCount: 0,
+    monitoredBackgroundSources: 0,
+    queryTimeSources: 0,
+    watchedUrls: 0,
+    isolationPolicy: 'Every document live-analysis run is isolated from every other document and matter.'
+  },
+  liveWatchlist: [],
   sources: [
     { id: 's1', name: 'Reserve Bank of India', jurisdiction: 'India', type: 'Authoritative source registry', status: 'Configured — manual verification', lastChecked: null },
     { id: 's2', name: 'Securities and Exchange Board of India', jurisdiction: 'India', type: 'Authoritative source registry', status: 'Configured — manual verification', lastChecked: null },

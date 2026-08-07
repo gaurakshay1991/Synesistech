@@ -33,6 +33,7 @@ import {
   healthStorage
 } from './db.js';
 import { extractText, analyzeDocument, answerDocumentQuestion } from './analysis.js';
+import { registerLiveRoutes } from './live-routes.js';
 
 assertProductionConfig();
 await initializeStorage();
@@ -387,6 +388,8 @@ app.post('/api/ask', auth, route(async (req, res) => {
   await audit(req, 'institution.question.answered', 'organization', req.orgId, { question: question.slice(0, 200), engine: result.engine });
   res.json(result);
 }));
+
+registerLiveRoutes({ app, auth, allow, route, openai });
 
 app.patch('/api/documents/:id/status', auth, route(async (req, res) => {
   const allowed = ['AI Review Complete', 'In Legal Review', 'In Compliance Review', 'Escalated', 'Final Approved', 'Rejected', 'Closed'];
