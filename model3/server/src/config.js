@@ -21,6 +21,7 @@ export const config = Object.freeze({
   jwtSecret,
   encryptionSecret,
   syncToken,
+  liveSyncMinutes: Math.max(5, Math.min(120, Number(process.env.SYNESIS_LIVE_SYNC_MINUTES || 15))),
   secureCookie: String(process.env.COOKIE_SECURE ?? (production ? 'true' : 'false')).toLowerCase() === 'true',
   organizationName: process.env.SYNESIS_ORGANIZATION_NAME || 'Synesis Model 3 Organisation',
   organizationSlug: process.env.SYNESIS_ORGANIZATION_SLUG || 'synesis-model-3',
