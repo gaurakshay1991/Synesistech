@@ -313,9 +313,9 @@ const loginLimiter = rateLimit({ windowMs: 15 * 60_000, max: 15, standardHeaders
 
 app.get('/api/health', (req, res) => res.json({
   ok: true,
-  product: 'SYNESIS Neuro-Symbolic Legal Intelligence Platform',
-  version: '4.0.0',
-  category: 'Neuro-symbolic legal, regulatory, clause-memory and governed simulation platform',
+  product: 'SYNESIS Live Legal Brain',
+  version: '5.0.0',
+  category: 'Live neuro-symbolic legal intelligence with autonomous source monitoring, current-law research, independent document analysis and exposure reasoning',
   ai: openai ? `configured (${config.openaiModel})` : 'emergency fallback only',
   storage: healthStorage(),
   time: new Date().toISOString()
