@@ -34,6 +34,8 @@ import {
 } from './db.js';
 import { extractText, analyzeDocument, answerDocumentQuestion } from './analysis.js';
 import { registerLiveRoutes, performSync } from './live-routes.js';
+import { liveLegalResearch } from './live-intelligence.js';
+import { buildDocumentExposureModel } from './exposure.js';
 
 assertProductionConfig();
 await initializeStorage();
@@ -367,6 +369,30 @@ app.post('/api/documents/analyze', auth, allow(...allowedRoles), upload.single('
     objective: clean(req.body.objective, 'Identify decisions, obligations, impacts, controls and governed actions.', 800)
   };
   const analysis = await analyzeDocument({ client: openai, model: config.openaiModel, text: extracted.text, options });
+  analysis.exposure_model = buildDocumentExposureModel(analysis, extracted.text, options);
+  analysis.analysis_details ||= {};
+  analysis.analysis_details.current_law_web_used = false;
+  analysis.analysis_details.document_isolation = 'single-document';
+  if (openai) {
+    const material = (analysis.findings || []).filter(item => ['Critical', 'High', 'Medium'].includes(item.risk_level || item.risk || item.level)).slice(0, 15).map(item => ({ category: item.category, risk: item.risk_level || item.risk, issue: item.issue, clause: item.clause_reference })).map(item => JSON.stringify(item)).join('\n');
+    try {
+      analysis.live_current_law = await liveLegalResearch({
+        client: openai,
+        model: config.openaiLiveModel,
+        question: `Independently verify this selected document against law, regulations, rules, circulars, guidelines and authoritative amendments that are CURRENT today. Determine which identified risks remain valid under current law, whether any new legal risk is revealed, and for each Critical/High/Medium item explain contractual, statutory/regulatory, operational and enforcement exposure. Never invent a monetary amount. Material findings from the document-only analysis:\n${material || 'No material finding summary was generated; analyse the document directly.'}`,
+        jurisdiction: options.jurisdiction,
+        document: { id: `upload-${extracted.hash.slice(0, 16)}`, title: options.title, jurisdiction: options.jurisdiction, matter: options.matter, sourceText: extracted.text },
+        purpose: 'automatic independent current-law document analysis'
+      });
+      analysis.analysis_details.current_law_web_used = true;
+      analysis.engine = `${analysis.engine} + live current-law authority pass`;
+    } catch (error) {
+      analysis.live_current_law = { status: 'Live current-law pass unavailable', error: error.message, researchedAt: new Date().toISOString(), liveWebUsed: false, isolation: { scope: 'single-document', otherDocumentMemoryUsed: false } };
+      analysis.analysis_details.current_law_error = error.message;
+    }
+  } else {
+    analysis.live_current_law = { status: 'Live current-law pass unavailable — OpenAI connection not configured', liveWebUsed: false, isolation: { scope: 'single-document', otherDocumentMemoryUsed: false } };
+  }
   const document = await saveDocument({ orgId: req.orgId, userId: req.user.id, title: options.title, fileName: extracted.fileName, mimeType: extracted.mimeType, hash: extracted.hash, documentType: options.documentType, jurisdiction: options.jurisdiction, matter: options.matter, sourceText: extracted.text, analysis });
   const state = await appendAnalysisToTwin(req.orgId, document, analysis);
   await audit(req, 'document.analysis.completed', 'document', document.id, { engine: analysis.engine, risk: analysis.overall_risk, score: analysis.overall_score, liveAi: analysis.analysis_details.live_ai_used });
@@ -377,15 +403,27 @@ app.post('/api/documents/:id/ask', auth, route(async (req, res) => {
   const { question } = parse(questionSchema, req.body);
   const document = await getDocument(req.orgId, req.params.id, true);
   if (!document) return res.status(404).json({ error: 'Document not found.' });
-  const answer = await answerDocumentQuestion({ client: openai, model: config.openaiModel, document, question });
-  await audit(req, 'document.question.answered', 'document', document.id, { question: question.slice(0, 200) });
-  res.json({ answer, engine: openai ? `Document intelligence (${config.openaiModel})` : 'Document-analysis fallback' });
+  if (openai) {
+    const live = await liveLegalResearch({ client: openai, model: config.openaiLiveModel, document, question, jurisdiction: document.jurisdiction, purpose: 'single-document current-law question' });
+    await audit(req, 'document.question.answered.live', 'document', document.id, { question: question.slice(0, 200), runId: live.runId, citations: live.citations.length, isolation: 'single-document' });
+    return res.json({ answer: live.answer, engine: `Live document intelligence (${config.openaiLiveModel})`, live });
+  }
+  const answer = await answerDocumentQuestion({ client: null, model: config.openaiModel, document, question });
+  await audit(req, 'document.question.answered.fallback', 'document', document.id, { question: question.slice(0, 200) });
+  res.json({ answer, engine: 'Document-analysis fallback — live web unavailable' });
 }));
 
 app.post('/api/ask', auth, route(async (req, res) => {
   const { question } = parse(questionSchema, req.body);
-  const result = await answerInstitutionalQuestion(await getState(req.orgId), question);
-  await audit(req, 'institution.question.answered', 'organization', req.orgId, { question: question.slice(0, 200), engine: result.engine });
+  const state = await getState(req.orgId);
+  if (openai) {
+    const live = await liveLegalResearch({ client: openai, model: config.openaiLiveModel, question, organisationContext: state, purpose: 'institutional question with current-law verification' });
+    const result = { ...live, engine: `Live institutional intelligence (${config.openaiLiveModel})` };
+    await audit(req, 'institution.question.answered.live', 'organization', req.orgId, { question: question.slice(0, 200), runId: live.runId, citations: live.citations.length });
+    return res.json(result);
+  }
+  const result = await answerInstitutionalQuestion(state, question);
+  await audit(req, 'institution.question.answered.fallback', 'organization', req.orgId, { question: question.slice(0, 200), engine: result.engine });
   res.json(result);
 }));
 
@@ -747,5 +785,5 @@ app.use((error, req, res, next) => {
 });
 
 app.listen(config.port, () => {
-  console.log(`SYNESIS Neuro-Symbolic Platform v4 listening on http://localhost:${config.port}`);
+  console.log(`SYNESIS Live Legal Brain v5 listening on http://localhost:${config.port}`);
 });
