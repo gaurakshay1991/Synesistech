@@ -33,7 +33,7 @@ function updateLiveMetrics(state) {
   return state;
 }
 
-async function performSync(orgId) {
+export async function performSync(orgId) {
   const current = await getState(orgId);
   const result = await syncAuthoritativeSources({
     existingUpdates: current.regulatoryUpdates || [],
@@ -94,7 +94,9 @@ function auditSystem(orgId, action, metadata = {}) {
 
 export function registerLiveRoutes({ app, auth, allow, route, openai }) {
   app.get('/api/live/status', auth, route(async (req, res) => {
-    const state = await getState(req.orgId);
+    let state = await getState(req.orgId);
+    const lastSync = new Date(state.liveBrain?.lastSyncAt || 0).getTime();
+    if (!lastSync || Date.now() - lastSync > config.liveSyncMinutes * 60_000) state = await performSync(req.orgId);
     const catalog = LIVE_SOURCE_CATALOG.map(source => {
       const known = (state.sources || []).find(item => item.id === source.id);
       return sourceStatusView(source, known?.lastChecked || null, known?.status || null);

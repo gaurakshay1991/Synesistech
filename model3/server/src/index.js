@@ -33,7 +33,7 @@ import {
   healthStorage
 } from './db.js';
 import { extractText, analyzeDocument, answerDocumentQuestion } from './analysis.js';
-import { registerLiveRoutes } from './live-routes.js';
+import { registerLiveRoutes, performSync } from './live-routes.js';
 
 assertProductionConfig();
 await initializeStorage();
@@ -390,6 +390,24 @@ app.post('/api/ask', auth, route(async (req, res) => {
 }));
 
 registerLiveRoutes({ app, auth, allow, route, openai });
+
+let liveSyncInProgress = false;
+async function runLiveSourceHeartbeat() {
+  if (!config.production || !organizationId || liveSyncInProgress) return;
+  liveSyncInProgress = true;
+  try {
+    const state = await performSync(organizationId);
+    console.log(`Synesis Live Brain sync: ${state.liveBrain?.lastDetectedCount || 0} new events at ${state.liveBrain?.lastSyncAt || new Date().toISOString()}`);
+  } catch (error) {
+    console.error(`Synesis Live Brain sync failed: ${error.message}`);
+  } finally {
+    liveSyncInProgress = false;
+  }
+}
+const liveSyncTimer = setInterval(runLiveSourceHeartbeat, config.liveSyncMinutes * 60_000);
+liveSyncTimer.unref();
+const liveStartupTimer = setTimeout(runLiveSourceHeartbeat, 8_000);
+liveStartupTimer.unref();
 
 app.patch('/api/documents/:id/status', auth, route(async (req, res) => {
   const allowed = ['AI Review Complete', 'In Legal Review', 'In Compliance Review', 'Escalated', 'Final Approved', 'Rejected', 'Closed'];
