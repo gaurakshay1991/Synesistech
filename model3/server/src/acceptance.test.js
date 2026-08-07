@@ -105,8 +105,9 @@ test('end-to-end API acceptance gate: auth, isolation, analysis, exposure and Q&
       form.set('objective', 'Identify legal risk and exposure without using any other document.');
       form.set('text', text);
       const res = await fetch(`${baseUrl}/api/documents/analyze`, { method: 'POST', headers: { cookie }, body: form });
-      assert.equal(res.status, 201, await res.text());
-      return res.json();
+      const raw = await res.text();
+      assert.equal(res.status, 201, raw);
+      return JSON.parse(raw);
     }
 
     const first = await analyse(
