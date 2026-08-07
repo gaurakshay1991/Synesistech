@@ -9,6 +9,7 @@ dotenv.config({ path: path.join(ROOT_DIR, '.env') });
 const production = process.env.NODE_ENV === 'production';
 const jwtSecret = process.env.JWT_SECRET || 'synesis-model3-local-jwt-secret-change-before-production';
 const encryptionSecret = process.env.DATA_ENCRYPTION_KEY || 'synesis-model3-local-encryption-secret-change-before-production';
+const syncToken = process.env.SYNESIS_SYNC_TOKEN || 'synesis-local-sync-token-change-before-production';
 
 export const config = Object.freeze({
   production,
@@ -19,6 +20,7 @@ export const config = Object.freeze({
   clientOrigins: String(process.env.CLIENT_ORIGIN || 'http://localhost:5173').split(',').map(v => v.trim()).filter(Boolean),
   jwtSecret,
   encryptionSecret,
+  syncToken,
   secureCookie: String(process.env.COOKIE_SECURE ?? (production ? 'true' : 'false')).toLowerCase() === 'true',
   organizationName: process.env.SYNESIS_ORGANIZATION_NAME || 'Synesis Model 3 Organisation',
   organizationSlug: process.env.SYNESIS_ORGANIZATION_SLUG || 'synesis-model-3',
@@ -28,7 +30,8 @@ export const config = Object.freeze({
     password: process.env.BOOTSTRAP_ADMIN_PASSWORD || 'ChangeMe!12345'
   },
   openaiKey: process.env.OPENAI_API_KEY || '',
-  openaiModel: process.env.OPENAI_MODEL || 'gpt-5-mini',
+  openaiModel: process.env.OPENAI_MODEL || 'gpt-5.6-terra',
+  openaiLiveModel: process.env.OPENAI_LIVE_MODEL || process.env.OPENAI_MODEL || 'gpt-5.6-sol',
   maxUploadMb: Math.max(1, Math.min(25, Number(process.env.MAX_UPLOAD_MB || 15)))
 });
 
@@ -37,6 +40,7 @@ export function assertProductionConfig() {
   const missing = [];
   if (jwtSecret.length < 32) missing.push('JWT_SECRET');
   if (encryptionSecret.length < 32) missing.push('DATA_ENCRYPTION_KEY');
+  if (syncToken.length < 32) missing.push('SYNESIS_SYNC_TOKEN');
   if (!config.bootstrapAdmin.email || config.bootstrapAdmin.password.length < 12) missing.push('BOOTSTRAP_ADMIN_EMAIL/BOOTSTRAP_ADMIN_PASSWORD');
   if (missing.length) throw new Error(`Unsafe production configuration: ${missing.join(', ')}`);
 }

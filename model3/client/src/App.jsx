@@ -10,12 +10,13 @@ import { Impact, Obligations, Decisions, Execution } from './screens-control.jsx
 import { Twin, Packs, Reports, AskSynesis } from './screens-intelligence.jsx';
 import { Simulations, ControlTower, UploadModal } from './screens-strategy.jsx';
 import { RegulatoryRadar, ClauseMemory, LitigationLab, GovernanceHub, VentureStudio } from './screens-neurosymbolic.jsx';
+import { LiveBrain } from './screens-livebrain.jsx';
 
 const API = import.meta.env.VITE_API_URL || '/api';
 const nav = [
   ['home', 'Command Centre', LayoutDashboard], ['work', 'My Work', ListChecks],
   ['documents', 'Intake & Documents', FilePlus2], ['review', 'Review Centre', FileSearch2],
-  ['regulatory', 'Regulatory Radar', Globe2], ['memory', 'Clause Memory Graph', BookOpenCheck],
+  ['livebrain', 'Live Legal Brain', BrainCircuit], ['regulatory', 'Regulatory Radar', Globe2], ['memory', 'Clause Memory Graph', BookOpenCheck],
   ['litigation', 'Litigation Lab', Gavel], ['governance', 'AI & ESG Governance', ShieldCheck],
   ['impact', 'Regulatory Impact', Globe2], ['obligations', 'Obligations & Controls', ClipboardCheck],
   ['decisions', 'Decisions & Approvals', Scale], ['execution', 'Execution & Evidence', CheckCircle2],
@@ -120,7 +121,7 @@ export default function App() {
   const common = { state, request, setState, setNotice };
   return <div className="app-shell">
     <aside className={`sidebar ${mobile ? 'open' : ''}`}>
-      <div className="brand"><div className="brand-mark"><Zap size={22} /></div><div><strong>SYNESIS</strong><span>NEURO-SYMBOLIC v4</span></div><button className="icon mobile-only" onClick={() => setMobile(false)}><X /></button></div>
+      <div className="brand"><div className="brand-mark"><Zap size={22} /></div><div><strong>SYNESIS</strong><span>LIVE LEGAL BRAIN v5</span></div><button className="icon mobile-only" onClick={() => setMobile(false)}><X /></button></div>
       <div className="category">Legal · Regulatory · Risk Intelligence</div>
       <nav>{nav.map(([key, label, Icon]) => <button key={key} className={page === key ? 'active' : ''} onClick={() => openPage(key)}><Icon size={18} /><span>{label}</span>{key === 'work' && state.metrics.attention > 0 && <b>{state.metrics.attention}</b>}</button>)}</nav>
       <div className="sidebar-foot"><div className="user-mini"><div>{user.name?.slice(0, 1)}</div><span><strong>{user.name}</strong><small>{user.role}</small></span></div><button className="icon" onClick={logout} title="Log out"><LogOut size={18} /></button></div>
@@ -134,6 +135,7 @@ export default function App() {
         {page === 'work' && <MyWork {...common} />}
         {page === 'documents' && <Documents documents={documents} onOpen={openDocument} onUpload={() => setUploadOpen(true)} />}
         {page === 'review' && <Review active={activeDocument} documents={documents} onOpen={openDocument} request={request} setActive={setActiveDocument} setNotice={setNotice} />}
+        {page === 'livebrain' && <LiveBrain {...common} documents={documents} activeDocument={activeDocument} onOpenDocument={openDocument} />}
         {page === 'regulatory' && <RegulatoryRadar {...common} />}
         {page === 'memory' && <ClauseMemory {...common} />}
         {page === 'litigation' && <LitigationLab {...common} />}
