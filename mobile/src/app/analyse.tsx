@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { KeyboardAvoidingView, Platform, ScrollView, Text, TextInput, View } from 'react-native';
 import { router } from 'expo-router';
 import * as DocumentPicker from 'expo-document-picker';
-import * as ImagePicker from 'expo-image-picker';
 import * as Haptics from 'expo-haptics';
 import { SynesisAPI, UploadAsset } from '@/lib/api';
 import { Action, C, Card, Eyebrow, Muted, Pill, Screen, styles } from '@/ui';
@@ -26,21 +25,8 @@ export default function Analyse() {
     }
   }
 
-  async function captureDocument() {
-    const permission = await ImagePicker.requestCameraPermissionsAsync();
-    if (!permission.granted) return setError('Camera permission is required to capture a document.');
-    const result = await ImagePicker.launchCameraAsync({ mediaTypes: ['images'], quality: 0.85 });
-    if (!result.canceled) {
-      const a = result.assets[0];
-      const name = a.fileName || `synesis-capture-${Date.now()}.jpg`;
-      setAsset({ uri: a.uri, name, mimeType: a.mimeType || 'image/jpeg' });
-      if (!title) setTitle('Captured document');
-      await Haptics.selectionAsync();
-    }
-  }
-
   async function submit() {
-    if (!asset && text.trim().length < 20) return setError('Choose a document, capture one, or paste at least 20 readable characters.');
+    if (!asset && text.trim().length < 20) return setError('Choose a supported document or paste at least 20 readable characters.');
     setBusy(true); setError('');
     try {
       const data = await SynesisAPI.analyzeDocument({ asset, text, title, matter, jurisdiction, analysisMode: 'Deep', riskAppetite: 'Conservative' });
@@ -56,8 +42,9 @@ export default function Analyse() {
     <View style={{ gap: 7 }}><Eyebrow>INDEPENDENT INTAKE</Eyebrow><Text style={styles.sectionTitle}>Give the brain one source at a time</Text><Muted>The selected document is analysed independently. Other document text is excluded unless you later choose institutional scope.</Muted></View>
     <Card style={{ gap: 12 }}>
       <View style={styles.between}><Text style={{ color: C.text, fontWeight: '800' }}>Source evidence</Text><Pill value={asset ? 'Ready' : 'Required'} /></View>
-      {asset ? <View style={{ padding: 12, backgroundColor: C.panel2, borderRadius: 14 }}><Text style={{ color: C.text, fontWeight: '800' }}>{asset.name}</Text><Muted>{asset.mimeType || 'Document'}</Muted></View> : <Muted>PDF, DOCX, TXT, CSV, JSON, Markdown, XML, HTML, RTF or a captured document image.</Muted>}
-      <View style={{ flexDirection: 'row', gap: 9 }}><View style={{ flex: 1 }}><Action title="Choose Files" secondary onPress={pickDocument} /></View><View style={{ flex: 1 }}><Action title="Use camera" secondary onPress={captureDocument} /></View></View>
+      {asset ? <View style={{ padding: 12, backgroundColor: C.panel2, borderRadius: 14 }}><Text style={{ color: C.text, fontWeight: '800' }}>{asset.name}</Text><Muted>{asset.mimeType || 'Document'}</Muted></View> : <Muted>PDF, DOCX, TXT, CSV, JSON, Markdown, XML, HTML or RTF from iCloud Drive, Files or another permitted document provider.</Muted>}
+      <Action title="Choose document from Files" secondary onPress={pickDocument} />
+      <Muted>For a paper document, use iPhone's system document scanner to create a PDF, then choose that PDF here. Raw photo/OCR intake is intentionally not exposed until the server-side vision path is separately validated.</Muted>
     </Card>
     <Card style={{ gap: 12 }}>
       <View><Text style={styles.label}>Title (optional)</Text><TextInput value={title} onChangeText={setTitle} style={styles.field} placeholder="Inferred from file if blank" placeholderTextColor={C.muted} /></View>
