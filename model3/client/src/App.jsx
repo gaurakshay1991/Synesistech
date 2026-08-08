@@ -11,9 +11,11 @@ import { Twin, Packs, Reports, AskSynesis } from './screens-intelligence.jsx';
 import { Simulations, ControlTower, UploadModal } from './screens-strategy.jsx';
 import { RegulatoryRadar, ClauseMemory, LitigationLab, GovernanceHub, VentureStudio } from './screens-neurosymbolic.jsx';
 import { LiveBrain } from './screens-livebrain.jsx';
+import { NeuroConsole } from './screens-neuroconsole.jsx';
 
 const API = import.meta.env.VITE_API_URL || '/api';
 const nav = [
+  ['neuro', 'Neuro Console', BrainCircuit],
   ['home', 'Command Centre', LayoutDashboard], ['work', 'My Work', ListChecks],
   ['documents', 'Intake & Documents', FilePlus2], ['review', 'Review Centre', FileSearch2],
   ['livebrain', 'Live Legal Brain', BrainCircuit], ['regulatory', 'Regulatory Radar', Globe2], ['memory', 'Clause Memory Graph', BookOpenCheck],
@@ -25,6 +27,12 @@ const nav = [
   ['reports', 'Reports & KPIs', BarChart3], ['ask', 'Ask Synesis', MessageSquareText],
   ['admin', 'AI Control Tower', Settings2]
 ];
+const navKeys = new Set(nav.map(item => item[0]));
+
+function initialPage() {
+  const requested = new URLSearchParams(window.location.search).get('page');
+  return navKeys.has(requested) ? requested : 'neuro';
+}
 
 function isCorporateFileTransferBlock(text, contentType = '') {
   const sample = String(text || '').toLowerCase();
@@ -73,7 +81,7 @@ async function readResponse(response) {
 export default function App() {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [page, setPage] = useState('home');
+  const [page, setPage] = useState(initialPage);
   const [state, setState] = useState(null);
   const [documents, setDocuments] = useState([]);
   const [activeDocument, setActiveDocument] = useState(null);
@@ -109,8 +117,19 @@ export default function App() {
     setUser(null); setState(null); setDocuments([]); setActiveDocument(null);
   }
 
-  function openPage(key) { setPage(key); setMobile(false); }
-  async function openDocument(id) { const data = await request(`/documents/${id}`); setActiveDocument(data.document); setPage('review'); }
+  function openPage(key) {
+    const next = navKeys.has(key) ? key : 'neuro';
+    setPage(next); setMobile(false);
+    const url = new URL(window.location.href);
+    url.searchParams.set('page', next);
+    window.history.replaceState({}, '', url);
+  }
+
+  async function openDocument(id) {
+    const data = await request(`/documents/${id}`);
+    setActiveDocument(data.document);
+    openPage('review');
+  }
 
   if (loading) return <div className="splash"><div className="brand-mark"><Zap size={26} /></div><h1>SYNESIS</h1><p>Loading neuro-symbolic legal intelligence…</p></div>;
   if (!user) return <Login request={request} onLogin={async next => { setUser(next); if (!next.mustChangePassword) await bootstrap(); }} />;
@@ -121,16 +140,17 @@ export default function App() {
   const common = { state, request, setState, setNotice };
   return <div className="app-shell">
     <aside className={`sidebar ${mobile ? 'open' : ''}`}>
-      <div className="brand"><div className="brand-mark"><Zap size={22} /></div><div><strong>SYNESIS</strong><span>LIVE LEGAL BRAIN v5</span></div><button className="icon mobile-only" onClick={() => setMobile(false)}><X /></button></div>
-      <div className="category">Legal · Regulatory · Risk Intelligence</div>
+      <div className="brand"><div className="brand-mark"><Zap size={22} /></div><div><strong>SYNESIS</strong><span>NEURO INTELLIGENCE v7</span></div><button className="icon mobile-only" onClick={() => setMobile(false)}><X /></button></div>
+      <div className="category">Legal · Regulatory · Risk · Decision Intelligence</div>
       <nav>{nav.map(([key, label, Icon]) => <button key={key} className={page === key ? 'active' : ''} onClick={() => openPage(key)}><Icon size={18} /><span>{label}</span>{key === 'work' && state.metrics.attention > 0 && <b>{state.metrics.attention}</b>}</button>)}</nav>
       <div className="sidebar-foot"><div className="user-mini"><div>{user.name?.slice(0, 1)}</div><span><strong>{user.name}</strong><small>{user.role}</small></span></div><button className="icon" onClick={logout} title="Log out"><LogOut size={18} /></button></div>
     </aside>
     {mobile && <div className="scrim" onClick={() => setMobile(false)} />}
     <main className="main">
-      <header className="topbar"><button className="icon mobile-only" onClick={() => setMobile(true)}><Menu /></button><div><small>Evidence-scoped legal intelligence</small><h1>{pageTitle}</h1></div><div className="top-actions"><button className="ghost" onClick={() => setUploadOpen(true)}><UploadCloud size={17} /> Analyse document</button><button className="primary" onClick={() => openPage('work')}><BellRing size={17} /> Attention queue <b>{state.metrics.attention}</b></button></div></header>
+      <header className="topbar"><button className="icon mobile-only" onClick={() => setMobile(true)}><Menu /></button><div><small>Evidence-scoped, current-law, governed intelligence</small><h1>{pageTitle}</h1></div><div className="top-actions"><button className="ghost" onClick={() => setUploadOpen(true)}><UploadCloud size={17} /> Analyse document</button><button className="primary" onClick={() => openPage('work')}><BellRing size={17} /> Attention queue <b>{state.metrics.attention}</b></button></div></header>
       {notice && <div className={`notice ${notice.type || 'info'}`}>{notice.message}<button onClick={() => setNotice(null)}><X size={16} /></button></div>}
       <section className="page">
+        {page === 'neuro' && <NeuroConsole {...common} documents={documents} activeDocument={activeDocument} onOpenDocument={openDocument} onUpload={() => setUploadOpen(true)} openPage={openPage} />}
         {page === 'home' && <Home state={state} openPage={openPage} />}
         {page === 'work' && <MyWork {...common} />}
         {page === 'documents' && <Documents documents={documents} onOpen={openDocument} onUpload={() => setUploadOpen(true)} />}
@@ -153,6 +173,13 @@ export default function App() {
         {page === 'admin' && <ControlTower state={state} user={user} request={request} />}
       </section>
     </main>
-    {uploadOpen && <UploadModal request={request} onClose={() => setUploadOpen(false)} onComplete={({ document, state: next }) => { setState(next); setDocuments(current => [document, ...current]); setActiveDocument(document); setUploadOpen(false); setPage('review'); setNotice({ type: 'success', message: `${document.title} was analysed through neural and symbolic passes and compiled into institutional memory.` }); }} />}
+    {uploadOpen && <UploadModal request={request} onClose={() => setUploadOpen(false)} onComplete={({ document, state: next }) => {
+      setState(next);
+      setDocuments(current => [document, ...current.filter(item => item.id !== document.id)]);
+      setActiveDocument(document);
+      setUploadOpen(false);
+      openPage('neuro');
+      setNotice({ type: 'success', message: `${document.title} was independently analysed, checked against current law where available, and added as the active matter.` });
+    }} />}
   </div>;
 }
