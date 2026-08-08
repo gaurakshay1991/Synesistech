@@ -1,0 +1,21 @@
+{
+  "expo": {
+    "name": "SYNESIS",
+    "slug": "synesis-ios",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "scheme": "synesis",
+    "userInterfaceStyle": "automatic",
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.synesis.neuro",
+      "infoPlist": {
+        "NSFaceIDUsageDescription": "Use Face ID to protect access to your SYNESIS workspace.",
+        "NSCameraUsageDescription": "Use the camera to capture legal and business documents for analysis."
+      }
+    },
+    "extra": {
+      "apiBaseUrl": "https://synesis-new-model-3.onrender.com/api"
+    }
+  }
+}
