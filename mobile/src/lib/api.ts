@@ -56,7 +56,7 @@ export async function api(path: string, options: RequestInit = {}) {
   if (bearer) headers.Authorization = `Bearer ${bearer}`;
   if (options.body && !(options.body instanceof FormData) && !headers['Content-Type']) headers['Content-Type'] = 'application/json';
   try {
-    const response = await fetch(`${API_BASE}${path}`, { ...options, headers });
+    const response = await fetch(`${API_BASE}${path}`, { credentials: 'include', ...options, headers });
     return await parse(response);
   } catch (error) {
     if (error instanceof ApiError && error.status === 401) await storeToken(null);
