@@ -1,0 +1,27 @@
+{
+  "name": "synesis-ios",
+  "version": "1.0.0",
+  "private": true,
+  "main": "node_modules/expo/AppEntry.js",
+  "scripts": {
+    "start": "expo start",
+    "ios": "expo start --ios",
+    "export:ios": "expo export --platform ios --output-dir dist-ios",
+    "check": "node scripts/check.mjs"
+  },
+  "dependencies": {
+    "expo": "~53.0.20",
+    "expo-constants": "~17.1.7",
+    "expo-document-picker": "~13.1.6",
+    "expo-file-system": "~18.1.11",
+    "expo-haptics": "~14.1.4",
+    "expo-linear-gradient": "~14.1.5",
+    "expo-status-bar": "~2.2.3",
+    "react": "19.0.0",
+    "react-native": "0.79.5",
+    "react-native-safe-area-context": "5.4.0"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.25.2"
+  }
+}
