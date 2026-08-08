@@ -38,22 +38,52 @@ export function ControlTower({ state, user, request }) {
   </>;
 }
 
+const acceptedDocumentExtensions = ['.pdf', '.docx', '.txt', '.csv', '.json', '.md', '.xml', '.html', '.rtf'];
+
+function fileExtension(name = '') {
+  const index = name.lastIndexOf('.');
+  return index >= 0 ? name.slice(index).toLowerCase() : '';
+}
+
 export function UploadModal({ request, onClose, onComplete }) {
   const [form, setForm] = useState({ title: '', matter: '', documentType: 'Auto-detect', jurisdiction: 'India', riskAppetite: 'Conservative', analysisMode: 'Deep', objective: 'Identify clause risks, legal rules, obligations, impacts, decisions, controls, memory candidates and governed actions.', text: '' });
   const [file, setFile] = useState(null);
   const [busy, setBusy] = useState(false);
+  const [dragging, setDragging] = useState(false);
   const [error, setError] = useState('');
   const [policyBlock, setPolicyBlock] = useState(null);
   const textRef = useRef(null);
+  const fileRef = useRef(null);
+
+  function chooseFile(next) {
+    if (!next) return;
+    const ext = fileExtension(next.name);
+    if (!acceptedDocumentExtensions.includes(ext)) {
+      setFile(null);
+      setError('Unsupported file type. Use PDF, DOCX, TXT, CSV, JSON, Markdown, XML, HTML or RTF.');
+      return;
+    }
+    setFile(next); setError(''); setPolicyBlock(null);
+  }
+
+  function dropFile(e) {
+    e.preventDefault(); setDragging(false);
+    chooseFile(e.dataTransfer?.files?.[0]);
+  }
 
   async function submit(e) {
     e.preventDefault(); setError('');
     if (!file && !form.text.trim()) {
-      setError('Choose a permitted file or paste the document text before starting analysis.');
+      setError('Drop or choose a permitted document, or paste the source text before starting analysis.');
       textRef.current?.focus(); return;
     }
     setBusy(true);
-    const body = new FormData(); Object.entries(form).forEach(([key,value]) => body.append(key,value)); if (file) body.append('file', file);
+    const body = new FormData();
+    Object.entries(form).forEach(([key, value]) => {
+      if (['title', 'matter'].includes(key) && !String(value || '').trim()) return;
+      body.append(key, value);
+    });
+    if (file) body.append('file', file);
     try { const data = await request('/documents/analyze', { method: 'POST', body }); onComplete(data); }
     catch (err) {
       if (err.code === 'CORPORATE_FILE_TRANSFER_BLOCKED') {
@@ -63,13 +93,26 @@ export function UploadModal({ request, onClose, onComplete }) {
     } finally { setBusy(false); }
   }
 
-  return <Modal title="Neuro-symbolic document analysis" onClose={onClose} wide><form className="form-grid" onSubmit={submit}>
-    <label className="full upload-drop"><UploadCloud /><strong>{file ? file.name : 'Choose PDF, DOCX, TXT, CSV, JSON, Markdown or XML'}</strong><span>Uploads remain subject to your organisation's DLP and external-transfer policy. Synesis cannot bypass those controls.</span><input type="file" accept=".pdf,.docx,.txt,.csv,.json,.md,.xml" onChange={e => { setFile(e.target.files?.[0] || null); setPolicyBlock(null); }} /></label>
+  return <Modal title="Independent neuro-symbolic document analysis" onClose={onClose} wide><form className="form-grid" onSubmit={submit}>
+    <label
+      className={`full upload-drop${dragging ? ' dragging' : ''}`}
+      onDragEnter={e => { e.preventDefault(); setDragging(true); }}
+      onDragOver={e => { e.preventDefault(); setDragging(true); }}
+      onDragLeave={e => { e.preventDefault(); if (e.currentTarget === e.target) setDragging(false); }}
+      onDrop={dropFile}
+    >
+      <UploadCloud />
+      <strong>{file ? file.name : 'Drop a document here or choose a file'}</strong>
+      <span>PDF, DOCX, TXT, CSV, JSON, Markdown, XML, HTML or RTF · one file is isolated and analysed as one matter.</span>
+      <span>Uploads remain subject to your organisation's DLP and external-transfer policy. Synesis cannot bypass those controls.</span>
+      <input ref={fileRef} type="file" accept=".pdf,.docx,.txt,.csv,.json,.md,.xml,.html,.rtf" onChange={e => chooseFile(e.target.files?.[0] || null)} />
+    </label>
+    {file && <div className="full guardrail-list"><span><ShieldCheck />Selected source: {file.name}</span><span><BrainCircuit />Isolation: no other document text enters this analysis run</span><span><Globe2 />Current-law research: independently evaluated where live authority access is permitted</span></div>}
     {policyBlock && <div className="form-error full policy-block"><AlertTriangle size={18} /><div><strong>File transfer stopped by your organisation</strong><p>{policyBlock.fileName} did not reach Synesis. The blocked file has been removed while your other entries remain. Paste text only where policy permits; otherwise request domain allowlisting or an internal deployment.</p><button type="button" className="text-button" onClick={() => textRef.current?.focus()}>Go to approved text entry <ArrowRight size={15} /></button></div></div>}
-    <label>Title<input value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} placeholder="Optional; inferred from file name" /></label><label>Matter<input required value={form.matter} onChange={e => setForm({ ...form, matter: e.target.value })} placeholder="Vendor agreement, policy, regulation or dispute" /></label>
-    <label>Document type<select value={form.documentType} onChange={e => setForm({ ...form, documentType: e.target.value })}>{['Auto-detect','Agreement','Policy','Regulation / circular','Legal opinion','Control evidence','Investigation pack','Transaction document'].map(item => <option key={item}>{item}</option>)}</select></label><label>Jurisdiction<input value={form.jurisdiction} onChange={e => setForm({ ...form, jurisdiction: e.target.value })} /></label>
+    <label>Title (optional)<input value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} placeholder="Inferred automatically from file name" /></label><label>Matter (optional)<input value={form.matter} onChange={e => setForm({ ...form, matter: e.target.value })} placeholder="Defaults to general institutional review" /></label>
+    <label>Document type<select value={form.documentType} onChange={e => setForm({ ...form, documentType: e.target.value })}>{['Auto-detect','Agreement','Policy','Regulation / circular','Legal opinion','Control evidence','Investigation pack','Transaction document','Court / dispute document'].map(item => <option key={item}>{item}</option>)}</select></label><label>Jurisdiction<input value={form.jurisdiction} onChange={e => setForm({ ...form, jurisdiction: e.target.value })} /></label>
     <label>Risk appetite<select value={form.riskAppetite} onChange={e => setForm({ ...form, riskAppetite: e.target.value })}>{['Conservative','Balanced','Commercially calibrated'].map(item => <option key={item}>{item}</option>)}</select></label><label>Analysis mode<select value={form.analysisMode} onChange={e => setForm({ ...form, analysisMode: e.target.value })}>{['Deep','Standard','Quick'].map(item => <option key={item}>{item}</option>)}</select></label>
     <label className="full">Analysis objective<textarea value={form.objective} onChange={e => setForm({ ...form, objective: e.target.value })} /></label><div className="divider full"><span>or use approved text entry</span></div><label className="full">Pasted source text<textarea ref={textRef} className="large-text" value={form.text} onChange={e => setForm({ ...form, text: e.target.value })} placeholder="Paste document text only where your organisation permits external processing" /></label>
-    {error && <div className="form-error full">{error}</div>}<div className="form-actions full"><button type="button" className="ghost" onClick={onClose}>Cancel</button><button className="primary" disabled={busy}>{busy ? <><RefreshCw className="spin" size={17} /> Running symbolic, neural and challenge passes…</> : <><Sparkles size={17} /> Analyse and compile</>}</button></div>
+    {error && <div className="form-error full">{error}</div>}<div className="form-actions full"><button type="button" className="ghost" onClick={onClose}>Cancel</button><button className="primary" disabled={busy}>{busy ? <><RefreshCw className="spin" size={17} /> Extracting, analysing, researching and challenging…</> : <><Sparkles size={17} /> Analyse independently</>}</button></div>
   </form></Modal>;
 }
