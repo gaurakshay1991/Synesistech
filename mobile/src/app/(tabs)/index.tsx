@@ -37,7 +37,7 @@ export default function NeuroHome() {
     {error ? <Card><Text style={{ color: C.red }}>{error}</Text></Card> : null}
 
     <Card style={{ gap: 12 }}>
-      <View style={styles.between}><View style={{ flex: 1, gap: 4 }}><Eyebrow>PRIMARY ACTION</Eyebrow><Text style={styles.sectionTitle}>Give SYNESIS the evidence</Text><Muted>Upload a document or capture a document image. Analysis stays matter-isolated.</Muted></View><Pill value="Independent" /></View>
+      <View style={styles.between}><View style={{ flex: 1, gap: 4 }}><Eyebrow>PRIMARY ACTION</Eyebrow><Text style={styles.sectionTitle}>Give SYNESIS the evidence</Text><Muted>Upload a supported document or a PDF created with iPhone's document scanner. Analysis stays matter-isolated.</Muted></View><Pill value="Independent" /></View>
       <Action title="Analyse document" onPress={() => router.push('/analyse')} />
       <Action title="Open AI Control Tower" secondary onPress={() => router.push('/control')} />
     </Card>

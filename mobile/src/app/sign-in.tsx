@@ -33,7 +33,7 @@ export default function SignIn() {
           <View><Text style={styles.label}>Password</Text><TextInput secureTextEntry autoComplete="current-password" value={password} onChangeText={setPassword} style={styles.field} placeholder="••••••••••••" placeholderTextColor={C.muted} /></View>
           {error ? <Text style={{ color: C.red, lineHeight: 19 }}>{error}</Text> : null}
           <Action title={busy ? 'Signing in…' : 'Enter SYNESIS'} onPress={submit} disabled={busy || !email || !password} />
-          <Muted>Sessions are stored in iOS secure storage. Restricted information remains subject to your organisation's information-flow policy.</Muted>
+          <Muted>Authentication is handled by the SYNESIS backend. Restricted information remains subject to your organisation's information-flow policy.</Muted>
         </Card>
       </ScrollView>
     </KeyboardAvoidingView>
