@@ -1,0 +1,30 @@
+{
+  "expo": {
+    "name": "SYNESIS",
+    "slug": "synesis-ios",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "scheme": "synesis",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.synesistech.neuro",
+      "usesIcloudStorage": true,
+      "infoPlist": {
+        "NSCameraUsageDescription": "SYNESIS uses the camera only when you choose to capture a document for analysis.",
+        "NSPhotoLibraryUsageDescription": "SYNESIS accesses selected images only when you choose them for document analysis."
+      }
+    },
+    "plugins": [
+      "expo-router",
+      ["expo-document-picker", { "iCloudContainerEnvironment": "Production" }],
+      ["expo-image-picker", { "photosPermission": "Allow SYNESIS to select a document image for analysis.", "cameraPermission": "Allow SYNESIS to capture a document image for analysis." }],
+      "expo-secure-store"
+    ],
+    "experiments": { "typedRoutes": true },
+    "extra": {
+      "apiBaseUrl": "https://synesis-new-model-3.onrender.com/api"
+    }
+  }
+}
