@@ -37,6 +37,7 @@ const cognitiveHtml = path.resolve(__dirname, '../../client/dist/cognitive-conso
 const transientMemory = new Map();
 const app = express();
 app.disable('x-powered-by');
+if (config.production) app.set('trust proxy', 1);
 app.use(express.json({ limit: '1mb' }));
 app.use(rateLimit({ windowMs: 60_000, max: 180, standardHeaders: true, legacyHeaders: false }));
 
