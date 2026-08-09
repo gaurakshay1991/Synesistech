@@ -89,12 +89,13 @@ export const SynesisAPI = {
   documents: () => api('/documents'),
   document: (id: string) => api(`/documents/${id}`),
   documentGraph: (id: string) => api(`/documents/${id}/graph`),
+  regulatoryImpact: (id: string) => api(`/documents/${id}/regulatory-impact`, { method: 'POST', body: '{}' }),
   liveStatus: () => api('/live/status'),
   controlPlane: () => api('/cognitive/control-plane'),
   cognitiveRun: (payload: any) => api('/cognitive/run', { method: 'POST', body: JSON.stringify(payload) }),
   exposure: (id: string) => api(`/documents/${id}/exposure`, { method: 'POST', body: JSON.stringify({ live: true }) }),
   askDocument: (id: string, question: string) => api(`/documents/${id}/ask`, { method: 'POST', body: JSON.stringify({ question }) }),
-  decisionPack: (id: string, objective?: string) => api(`/documents/${id}/decision-pack`, { method: 'POST', body: JSON.stringify({ objective: objective || 'Can this matter be cleared? Separate must-fix, worth-raising, acceptable and let-go points.' }) }),
+  decisionPack: (id: string, objective?: string) => api(`/documents/${id}/decision-pack`, { method: 'POST', body: JSON.stringify({ objective: objective || 'Can this matter be cleared? Separate must-fix, worth-raising, acceptable and let-go points, including regulatory and compliance blockers.' }) }),
   findingActionPack: (documentId: string, findingId: string, instruction = '') => api(`/documents/${documentId}/findings/${encodeURIComponent(findingId)}/action-pack`, { method: 'POST', body: JSON.stringify({ instruction }) }),
   saveClauseMemory: (documentId: string, findingId: string, actionPack: any) => api(`/documents/${documentId}/findings/${encodeURIComponent(findingId)}/memory`, { method: 'POST', body: JSON.stringify({ actionPack }) }),
   patchTask: (id: string, status: string) => api(`/tasks/${id}`, { method: 'PATCH', body: JSON.stringify({ status }) }),
@@ -108,7 +109,7 @@ export const SynesisAPI = {
     form.append('documentType', input.documentType || 'Auto-detect');
     form.append('analysisMode', input.analysisMode || 'Live multipass');
     form.append('riskAppetite', input.riskAppetite || 'Conservative');
-    form.append('objective', input.objective || 'Decide what is material, what can be accepted, what must be raised, the defensible exposure, mitigation strategy and exact drafting.');
+    form.append('objective', input.objective || 'Decide what is material, what can be accepted, what must be raised, whether cited law/circulars are current, identify omitted applicable authority, quantify defensible exposure, mitigate regulatory/compliance risk and draft exact wording.');
     return api('/documents/analyze', { method: 'POST', body: form });
   }
 };
