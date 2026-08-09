@@ -84,14 +84,19 @@ export const AuthAPI = {
 export type UploadAsset = { uri: string; name: string; mimeType?: string | null };
 
 export const SynesisAPI = {
+  productHealth: () => api('/product-v8/health'),
   bootstrap: () => api('/bootstrap'),
   documents: () => api('/documents'),
   document: (id: string) => api(`/documents/${id}`),
+  documentGraph: (id: string) => api(`/documents/${id}/graph`),
   liveStatus: () => api('/live/status'),
   controlPlane: () => api('/cognitive/control-plane'),
   cognitiveRun: (payload: any) => api('/cognitive/run', { method: 'POST', body: JSON.stringify(payload) }),
   exposure: (id: string) => api(`/documents/${id}/exposure`, { method: 'POST', body: JSON.stringify({ live: true }) }),
   askDocument: (id: string, question: string) => api(`/documents/${id}/ask`, { method: 'POST', body: JSON.stringify({ question }) }),
+  decisionPack: (id: string, objective?: string) => api(`/documents/${id}/decision-pack`, { method: 'POST', body: JSON.stringify({ objective: objective || 'Can this matter be cleared? Separate must-fix, worth-raising, acceptable and let-go points.' }) }),
+  findingActionPack: (documentId: string, findingId: string, instruction = '') => api(`/documents/${documentId}/findings/${encodeURIComponent(findingId)}/action-pack`, { method: 'POST', body: JSON.stringify({ instruction }) }),
+  saveClauseMemory: (documentId: string, findingId: string, actionPack: any) => api(`/documents/${documentId}/findings/${encodeURIComponent(findingId)}/memory`, { method: 'POST', body: JSON.stringify({ actionPack }) }),
   patchTask: (id: string, status: string) => api(`/tasks/${id}`, { method: 'PATCH', body: JSON.stringify({ status }) }),
   async analyzeDocument(input: { asset?: UploadAsset | null; text?: string; title?: string; matter?: string; jurisdiction?: string; documentType?: string; analysisMode?: string; riskAppetite?: string; objective?: string }) {
     const form = new FormData();
@@ -101,9 +106,9 @@ export const SynesisAPI = {
     form.append('matter', input.matter || '');
     form.append('jurisdiction', input.jurisdiction || 'India');
     form.append('documentType', input.documentType || 'Auto-detect');
-    form.append('analysisMode', input.analysisMode || 'Deep');
+    form.append('analysisMode', input.analysisMode || 'Live multipass');
     form.append('riskAppetite', input.riskAppetite || 'Conservative');
-    form.append('objective', input.objective || 'Identify material legal, regulatory, operational and commercial risks; current-law impact; obligations; controls; exposure; decision points and governed actions.');
+    form.append('objective', input.objective || 'Decide what is material, what can be accepted, what must be raised, the defensible exposure, mitigation strategy and exact drafting.');
     return api('/documents/analyze', { method: 'POST', body: form });
   }
 };
