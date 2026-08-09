@@ -5,6 +5,21 @@ const clean = value => String(value || '').toLowerCase().replace(/[^a-z0-9]+/g, 
 const tokens = value => [...new Set(clean(value).split(' ').filter(word => word.length >= 3 && !STOP.has(word)))];
 const hash = value => crypto.createHash('sha256').update(String(value || '')).digest('hex').slice(0, 24);
 
+const AUTHORITY_ALIASES = [
+  { needles: ['rbi','reserve bank'], aliases: ['rbi','reserve bank of india'] },
+  { needles: ['sebi','securities exchange'], aliases: ['sebi','securities and exchange board of india'] },
+  { needles: ['irdai','insurance regulatory'], aliases: ['irdai','insurance regulatory and development authority of india'] },
+  { needles: ['ifsca','international financial services'], aliases: ['ifsca','international financial services centres authority'] },
+  { needles: ['pfrda','pension fund regulatory'], aliases: ['pfrda','pension fund regulatory and development authority'] },
+  { needles: ['fiu','financial intelligence unit'], aliases: ['fiu','fiu ind','financial intelligence unit india'] },
+  { needles: ['dgft','directorate general foreign trade'], aliases: ['dgft','directorate general of foreign trade'] },
+  { needles: ['mca','ministry corporate affairs'], aliases: ['mca','ministry of corporate affairs'] },
+  { needles: ['meity','electronics information technology'], aliases: ['meity','ministry of electronics and information technology'] },
+  { needles: ['cbic','indirect taxes customs'], aliases: ['cbic','central board of indirect taxes and customs'] },
+  { needles: ['cbdt','direct taxes'], aliases: ['cbdt','central board of direct taxes'] },
+  { needles: ['cci','competition commission'], aliases: ['cci','competition commission of india'] }
+];
+
 function authoritySignals(document = {}) {
   const impact = document.analysis?.regulatory_impact || {};
   const values = [];
@@ -17,6 +32,17 @@ function authoritySignals(document = {}) {
 
 function eventText(update = {}) {
   return [update.title, update.summary, update.regulator, update.sourceName, update.domain, update.changeType].filter(Boolean).join(' ');
+}
+
+function authorityAliasMatch(signal, regulatorText) {
+  const normalizedSignal = clean(signal);
+  const normalizedRegulator = clean(regulatorText);
+  for (const group of AUTHORITY_ALIASES) {
+    const signalMatches = group.needles.some(value => normalizedSignal.includes(clean(value)));
+    const regulatorMatches = group.aliases.some(value => normalizedRegulator.includes(clean(value)));
+    if (signalMatches && regulatorMatches) return group.aliases[0];
+  }
+  return null;
 }
 
 export function scoreRegulatoryDrift(document = {}, update = {}) {
@@ -51,10 +77,17 @@ export function scoreRegulatoryDrift(document = {}, update = {}) {
       score += 18;
       reasons.push(`short reference match: ${common.join(', ')}`);
     }
-    const authorityWords = sigTokens.filter(token => /rbi|sebi|irdai|ifsca|pfrda|fiu|dgft|mca|meity|cbic|cbdt|competition|supreme|reserve|securities|insurance|pension/.test(token));
-    if (authorityWords.some(token => regulator.includes(token))) {
-      score += 22;
-      reasons.push(`same authority: ${authorityWords.find(token => regulator.includes(token))}`);
+
+    const alias = authorityAliasMatch(signal, regulator);
+    if (alias) {
+      score += 28;
+      reasons.push(`same authority: ${alias}`);
+    } else {
+      const authorityWords = sigTokens.filter(token => /rbi|sebi|irdai|ifsca|pfrda|fiu|dgft|mca|meity|cbic|cbdt|competition|supreme|reserve|securities|insurance|pension/.test(token));
+      if (authorityWords.some(token => regulator.includes(token))) {
+        score += 22;
+        reasons.push(`same authority: ${authorityWords.find(token => regulator.includes(token))}`);
+      }
     }
   }
 
@@ -110,8 +143,8 @@ export function applyRegulatoryDrift(state = {}, candidates = []) {
   state.alerts ||= [];
   state.tasks ||= [];
   const existing = new Set(state.regulatoryDrift.map(item => item.id));
-  for (const candidate of candidates) {
-    if (existing.has(candidate.id)) continue;
+  for (const candidate of candidates || []) {
+    if (!candidate?.id || existing.has(candidate.id)) continue;
     state.regulatoryDrift.unshift(candidate);
     existing.add(candidate.id);
     state.alerts.unshift({
