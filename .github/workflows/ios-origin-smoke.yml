@@ -1,0 +1,34 @@
+name: SYNESIS iPhone Origin Smoke
+
+on:
+  push:
+    branches:
+      - fix/ios-origin-guard
+  workflow_dispatch:
+
+jobs:
+  origin-login:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Verify same-origin Safari login POST is not blocked
+        shell: bash
+        run: |
+          set -euo pipefail
+          body_file="$(mktemp)"
+          code=$(curl -sS -o "$body_file" -w '%{http_code}' \
+            -X POST 'https://synesis-new-model-3.onrender.com/api/auth/login' \
+            -H 'Origin: https://synesis-new-model-3.onrender.com' \
+            -H 'Content-Type: application/json' \
+            --data '{"email":"origin-smoke@example.invalid","password":"InvalidSmoke123!"}')
+          echo "HTTP $code"
+          cat "$body_file"
+          if [ "$code" = "403" ]; then
+            echo 'Origin guard is still blocking the real public SYNESIS origin.' >&2
+            exit 1
+          fi
+          if [ "$code" != "401" ]; then
+            echo "Expected 401 invalid credentials after origin validation, got $code" >&2
+            exit 1
+          fi
+          grep -qi 'invalid email or password' "$body_file"
