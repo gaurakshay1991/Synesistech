@@ -38,14 +38,15 @@ function updateLiveMetrics(state) {
 
 export async function performSync(orgId) {
   const current = await getState(orgId);
-  const [result, documents] = await Promise.all([
+  const [result, documentRefs] = await Promise.all([
     syncAuthoritativeSources({
       existingUpdates: current.regulatoryUpdates || [],
       sourceState: current.sources || [],
       watchlist: current.liveWatchlist || []
     }),
-    listDocuments(orgId, 300)
+    listDocuments(orgId, 120)
   ]);
+  const documents = (await Promise.all(documentRefs.map(item => getDocument(orgId, item.id, false)))).filter(Boolean);
   const driftCandidates = mapRegulatoryDrift(documents, result.detected);
 
   return mutateState(orgId, state => {
