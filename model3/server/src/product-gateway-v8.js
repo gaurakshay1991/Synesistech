@@ -11,13 +11,14 @@ process.env.PORT = String(internalGatewayPort);
 process.env.SYNESIS_INTERNAL_PORT = String(internalCorePort);
 await import('./cognitive-gateway.js');
 
-const [{ config }, db, analysisModule, exposureModule, liveModule, product] = await Promise.all([
+const [{ config }, db, analysisModule, exposureModule, liveModule, product, regulatory] = await Promise.all([
   import('./config.js'),
   import('./db.js'),
   import('./analysis.js'),
   import('./exposure.js'),
   import('./live-intelligence.js'),
-  import('./product-intelligence.js')
+  import('./product-intelligence.js'),
+  import('./regulatory-impact.js')
 ]);
 process.env.PORT = String(externalPort);
 
@@ -77,7 +78,7 @@ async function requireSession(req, res, next) {
     req.synesisUser = session.body.user;
     req.orgId = session.body.user.organizationId;
     next();
-  } catch (error) {
+  } catch {
     res.status(503).json({ error: 'SYNESIS authentication runtime is unavailable.' });
   }
 }
@@ -85,6 +86,42 @@ async function requireSession(req, res, next) {
 function findingById(document, findingId) {
   const findings = document.analysis?.findings || [];
   return findings.find((item, index) => String(item.id || `finding-${index + 1}`) === String(findingId));
+}
+
+async function generateRegulatoryImpact({ document, sourceText, currentLaw = null }) {
+  const referenceInventory = regulatory.extractLegalReferences(sourceText || document?.sourceText || '');
+  let research = currentLaw;
+  try {
+    research = await liveModule.liveLegalResearch({
+      client: openai,
+      model: config.openaiLiveModel,
+      question: regulatory.regulatoryImpactResearchQuestion(referenceInventory),
+      jurisdiction: document.jurisdiction,
+      document: { ...document, sourceText: sourceText || document.sourceText },
+      purpose: 'regulatory reference freshness, amendment, supersession and compliance impact audit'
+    });
+  } catch (error) {
+    return regulatory.emptyRegulatoryImpact(referenceInventory, `Live regulatory verification unavailable: ${error.message}`);
+  }
+
+  try {
+    const instruction = `You are the regulatory change, compliance-impact and stale-law verification engine inside SYNESIS. Use ONLY the selected document, the extracted reference inventory and the supplied fresh live-research result. Do not invent an amendment, effective date, requirement, penalty, regulator or citation that is not supported by those inputs. Return JSON keys: overallImpact, staleReferenceWarning, executiveConclusion, citedAuthorities[], omittedApplicableAuthorities[], complianceImpacts[], transitionAndDeadlines[], requiredActions[], approvalsAndEscalations[], missingFacts[], decisionEffect. overallImpact must be one of NONE, LOW, MEDIUM, HIGH, CRITICAL. Each citedAuthorities item must contain referenceId, documentReference, currentStatus, currentInstrument, amendmentOrSupersession, effectiveDate, transitionDate, impact, sourceUrls[]. currentStatus must be CURRENT, AMENDED, SUPERSEDED, REPEALED, WITHDRAWN, PARTIALLY_EFFECTIVE, NOT_YET_EFFECTIVE, UNCLEAR, or NOT_VERIFIED. Each complianceImpacts item must contain dimension, impactLevel, requirement, applicability, ownerFunction, trigger, deadline, evidenceRequired, controlChange, consequenceOfFailure, mitigation. Each omittedApplicableAuthorities item must explain why the current authority applies despite not being cited. requiredActions must be concrete and prioritised. Distinguish mandatory law from regulatory expectation, guidance, contractual preference and proposal/consultation.`;
+    const pack = await callStructured(instruction, {
+      document: { id: document.id, title: document.title, matter: document.matter, jurisdiction: document.jurisdiction, documentType: document.documentType },
+      referenceInventory,
+      complianceDimensions: regulatory.COMPLIANCE_IMPACT_DIMENSIONS,
+      liveResearch: { answer: research.answer || '', citations: research.citations || [], researchedAt: research.researchedAt || null },
+      sourceText: sourceText || document.sourceText
+    }, 7000);
+    return regulatory.normalizeRegulatoryImpact(pack, referenceInventory, research);
+  } catch (error) {
+    const fallback = regulatory.emptyRegulatoryImpact(referenceInventory, `Regulatory impact structuring failed: ${error.message}`);
+    fallback.status = 'RESEARCH_COMPLETE_STRUCTURING_FAILED';
+    fallback.currentLawCitations = research?.citations || [];
+    fallback.researchedAt = research?.researchedAt || new Date().toISOString();
+    fallback.liveWebUsed = Boolean(research?.liveWebUsed);
+    return fallback;
+  }
 }
 
 async function appendDocumentWork(orgId, document, analysis) {
@@ -109,6 +146,13 @@ async function appendDocumentWork(orgId, document, analysis) {
       owner: clean(item.owner, 'Matter owner', 120), due: clean(item.due, 'To be scheduled', 80), status: 'Not started', priority: analysis.overall_risk,
       blocker: '', evidenceRequired: Array.isArray(item.evidence_required) ? item.evidence_required : []
     }));
+    (analysis.regulatory_impact?.requiredActions || []).slice(0, 20).forEach((item, index) => state.tasks.unshift({
+      id: `reg-task-${stamp}-${index}`, documentId: document.id,
+      title: clean(item.title || item.action || item.requirement, `Regulatory remediation for ${document.title}`, 260),
+      owner: clean(item.ownerFunction || item.owner, 'Legal / Compliance', 120), due: clean(item.deadline || item.due, 'Review now', 80),
+      status: 'Not started', priority: clean(item.priority || analysis.regulatory_impact?.overallImpact, 'High', 30),
+      blocker: '', evidenceRequired: Array.isArray(item.evidenceRequired) ? item.evidenceRequired : []
+    }));
     return state;
   });
 }
@@ -116,8 +160,8 @@ async function appendDocumentWork(orgId, document, analysis) {
 app.get('/api/product-v8/health', (req, res) => res.json({
   ok: true,
   product: 'SYNESIS Matter Intelligence Workbench',
-  version: '8.0.0-real-intelligence',
-  policy: 'Live neural analysis required for completed document review; demo seed state suppressed from operational workbench.',
+  version: '8.1.0-regulatory-impact',
+  policy: 'Live neural analysis required for completed document review; demo seed state suppressed; regulatory references are independently checked for currentness when live research is available.',
   runtimeSmoke,
   time: new Date().toISOString()
 }));
@@ -143,7 +187,7 @@ app.post('/api/documents/analyze', requireSession, upload.single('file'), asyncR
     jurisdiction: clean(req.body.jurisdiction, 'India', 100),
     riskAppetite: clean(req.body.riskAppetite, 'Conservative', 80),
     analysisMode: 'Live multipass',
-    objective: clean(req.body.objective, 'Determine what is material, what can be accepted, what must be raised, the defensible exposure, mitigation strategy and exact drafting.', 1000)
+    objective: clean(req.body.objective, 'Determine what is material, what can be accepted, what must be raised, the defensible exposure, mitigation strategy, regulatory/compliance impact and exact drafting.', 1000)
   };
 
   const analysis = await analysisModule.analyzeDocument({ client: openai, model: config.openaiModel, text: extracted.text, options });
@@ -160,13 +204,22 @@ app.post('/api/documents/analyze', requireSession, upload.single('file'), asyncR
   analysis.analysis_details.document_isolation = 'single-document';
   analysis.analysis_details.current_law_web_used = false;
 
+  const provisionalDocument = {
+    id: `upload-${extracted.hash.slice(0, 16)}`,
+    title: options.title,
+    jurisdiction: options.jurisdiction,
+    matter: options.matter,
+    documentType: options.documentType,
+    sourceText: extracted.text
+  };
+
   try {
     analysis.live_current_law = await liveModule.liveLegalResearch({
       client: openai,
       model: config.openaiLiveModel,
-      question: 'Verify this exact selected document against law, regulations, rules, circulars, guidelines and authoritative amendments current today. Identify only document-relevant legal effects. For each material issue distinguish operative law from proposal/guidance, state effective dates where available, and do not invent monetary exposure.',
+      question: 'Verify this exact selected document against law, regulations, rules, circulars, guidelines, orders and authoritative amendments current today. Explicitly identify any cited authority that has since been amended, superseded, repealed, withdrawn, consolidated or partly/not-yet brought into force, and identify material current authorities that apply but were omitted. Distinguish operative law from proposal/guidance, state effective and transition dates where available, and do not invent monetary exposure.',
       jurisdiction: options.jurisdiction,
-      document: { id: `upload-${extracted.hash.slice(0, 16)}`, title: options.title, jurisdiction: options.jurisdiction, matter: options.matter, sourceText: extracted.text },
+      document: provisionalDocument,
       purpose: 'automatic independent current-law document analysis'
     });
     analysis.analysis_details.current_law_web_used = true;
@@ -175,6 +228,9 @@ app.post('/api/documents/analyze', requireSession, upload.single('file'), asyncR
     analysis.live_current_law = { status: 'Current-law verification unavailable', error: error.message, researchedAt: new Date().toISOString(), liveWebUsed: false, isolation: { scope: 'single-document', otherDocumentMemoryUsed: false } };
     analysis.analysis_details.current_law_error = error.message;
   }
+
+  analysis.regulatory_impact = await generateRegulatoryImpact({ document: provisionalDocument, sourceText: extracted.text });
+  analysis.analysis_details.regulatory_impact_live_used = Boolean(analysis.regulatory_impact?.liveWebUsed);
 
   const provisional = {
     id: `pending-${extracted.hash.slice(0, 12)}`,
@@ -193,7 +249,7 @@ app.post('/api/documents/analyze', requireSession, upload.single('file'), asyncR
   analysis.document_graph = product.buildDocumentGraph({ ...document, analysis });
   analysis.clause_memory = product.buildClauseMemory({ ...document, analysis });
   await appendDocumentWork(req.orgId, document, analysis);
-  await db.logAudit({ orgId: req.orgId, user: req.synesisUser, action: 'document.analysis.completed.v8', entityType: 'document', entityId: document.id, metadata: { engine: analysis.engine, liveAi: true, liveCurrentLaw: analysis.analysis_details.current_law_web_used } });
+  await db.logAudit({ orgId: req.orgId, user: req.synesisUser, action: 'document.analysis.completed.v8', entityType: 'document', entityId: document.id, metadata: { engine: analysis.engine, liveAi: true, liveCurrentLaw: analysis.analysis_details.current_law_web_used, staleReferenceWarning: Boolean(analysis.regulatory_impact?.staleReferenceWarning), regulatoryImpact: analysis.regulatory_impact?.overallImpact } });
   const state = product.operationalStateFromDocuments(await db.getState(req.orgId), await db.listDocuments(req.orgId, 300));
   res.status(201).json({ document: await db.getDocument(req.orgId, document.id, false), state });
 }));
@@ -202,6 +258,14 @@ app.get('/api/documents/:id/graph', requireSession, asyncRoute(async (req, res) 
   const document = await db.getDocument(req.orgId, req.params.id, true);
   if (!document) return res.status(404).json({ error: 'Document not found.' });
   res.json({ graph: product.buildDocumentGraph(document), clauseMemory: product.buildClauseMemory(document) });
+}));
+
+app.post('/api/documents/:id/regulatory-impact', requireSession, jsonRoute, asyncRoute(async (req, res) => {
+  const document = await db.getDocument(req.orgId, req.params.id, true);
+  if (!document) return res.status(404).json({ error: 'Document not found.' });
+  const impact = await generateRegulatoryImpact({ document, sourceText: document.sourceText });
+  await db.logAudit({ orgId: req.orgId, user: req.synesisUser, action: 'document.regulatory-impact.generated', entityType: 'document', entityId: document.id, metadata: { status: impact.status, overallImpact: impact.overallImpact, staleReferenceWarning: impact.staleReferenceWarning, citedAuthorities: impact.citedAuthorities?.length || 0, omittedAuthorities: impact.omittedApplicableAuthorities?.length || 0 } });
+  res.json({ regulatoryImpact: impact, document: { id: document.id, title: document.title, jurisdiction: document.jurisdiction, matter: document.matter } });
 }));
 
 app.post('/api/documents/:id/findings/:findingId/action-pack', requireSession, jsonRoute, asyncRoute(async (req, res) => {
@@ -219,7 +283,7 @@ app.post('/api/documents/:id/findings/:findingId/action-pack', requireSession, j
     currentLaw = await liveModule.liveLegalResearch({
       client: openai,
       model: config.openaiLiveModel,
-      question: `For the exact identified issue below, verify the current legal/regulatory position today and explain whether it makes the point worth raising, negotiable, acceptable with monitoring, or non-material. Do not use other matters. ISSUE: ${finding.issue}. CLAUSE: ${finding.clause_reference}.`,
+      question: `For the exact identified issue below, verify the current legal/regulatory position today and explain whether it makes the point worth raising, negotiable, acceptable with monitoring, or non-material. Check later amendments/supersession of any authority relied on in the clause. Do not use other matters. ISSUE: ${finding.issue}. CLAUSE: ${finding.clause_reference}.`,
       jurisdiction: document.jurisdiction,
       document,
       purpose: 'finding-level current-law and negotiation verification'
@@ -228,16 +292,17 @@ app.post('/api/documents/:id/findings/:findingId/action-pack', requireSession, j
     currentLaw = { status: 'unavailable', error: error.message, answer: '', citations: [] };
   }
 
-  const instruction = `You are a senior transactional lawyer, legal risk officer and negotiation strategist. Analyse ONE finding from ONE supplied document only. The user needs a practical decision, not generic commentary. Treat the supplied exposure-engine result as authoritative for monetary quantification: never create a different number or imply a legal maximum that is not evidenced. Current-law research may be used only to the extent shown in the supplied research result. Return JSON keys: disposition, priority, headline, worth_raising, why, legal_materiality, commercial_materiality, operational_materiality, regulatory_materiality, quantification, risk_if_accepted, mitigation_strategy, negotiation_strategy, rewrite, fallback_position, walkaway_position, questions_for_business, residual_risk, confidence, evidence_used, current_law_relevance. disposition must be one of LET_GO, ACCEPT_WITH_NOTE, MONITOR, NEGOTIATE, MUST_FIX, ESCALATE. priority must be 1 to 5. quantification must preserve the supplied engine status/label/rationale and must not invent money. rewrite must contain current_clause, preferred_text, fallback_text, drafting_rationale. mitigation_strategy must contain immediate, contractual, operational, monitoring. negotiation_strategy must contain opening_position, concession_ladder, counterparty_message, red_line.`;
+  const instruction = `You are a senior transactional lawyer, legal risk officer and negotiation strategist. Analyse ONE finding from ONE supplied document only. The user needs a practical decision, not generic commentary. Treat the supplied exposure-engine result as authoritative for monetary quantification: never create a different number or imply a legal maximum that is not evidenced. Current-law research may be used only to the extent shown in the supplied research result. Consider the document regulatory-impact object when deciding materiality. Return JSON keys: disposition, priority, headline, worth_raising, why, legal_materiality, commercial_materiality, operational_materiality, regulatory_materiality, compliance_impact, quantification, risk_if_accepted, mitigation_strategy, negotiation_strategy, rewrite, fallback_position, walkaway_position, questions_for_business, residual_risk, confidence, evidence_used, current_law_relevance. disposition must be one of LET_GO, ACCEPT_WITH_NOTE, MONITOR, NEGOTIATE, MUST_FIX, ESCALATE. priority must be 1 to 5. quantification must preserve the supplied engine status/label/rationale and must not invent money. rewrite must contain current_clause, preferred_text, fallback_text, drafting_rationale. mitigation_strategy must contain immediate, contractual, operational, monitoring. negotiation_strategy must contain opening_position, concession_ladder, counterparty_message, red_line.`;
 
   const pack = await callStructured(instruction, {
     document: { id: document.id, title: document.title, matter: document.matter, jurisdiction: document.jurisdiction, documentType: document.documentType },
     exactFinding: finding,
     exactSourceText: document.sourceText,
     exposureEngine: exposure || { quantificationStatus: 'Not reliably quantifiable', exposureLabel: 'Not reliably quantifiable', rationale: 'No reliable monetary basis was identified.' },
+    regulatoryImpact: document.analysis?.regulatory_impact || null,
     currentLaw: { answer: currentLaw?.answer || '', citations: currentLaw?.citations || [], researchedAt: currentLaw?.researchedAt || null },
     userInstruction: clean(req.body?.instruction, '', 1200)
-  }, 6000);
+  }, 6500);
 
   pack.findingId = finding.id || req.params.findingId;
   pack.documentId = document.id;
@@ -260,7 +325,7 @@ app.post('/api/documents/:id/decision-pack', requireSession, jsonRoute, asyncRou
     live = await liveModule.liveLegalResearch({
       client: openai,
       model: config.openaiLiveModel,
-      question: 'For this exact document, verify the current legal/regulatory position and identify only matters that change the clearance decision today. Distinguish mandatory law, regulatory expectation, guidance and contractual/commercial preference.',
+      question: 'For this exact document, verify the current legal/regulatory position and identify only matters that change the clearance decision today. Check whether cited laws/circulars have been amended, superseded, repealed, withdrawn or consolidated and whether current applicable authorities are missing. Distinguish mandatory law, regulatory expectation, guidance and contractual/commercial preference.',
       jurisdiction: document.jurisdiction,
       document,
       purpose: 'document clearance decision current-law verification'
@@ -269,16 +334,17 @@ app.post('/api/documents/:id/decision-pack', requireSession, jsonRoute, asyncRou
     live = { answer: '', citations: [], error: error.message };
   }
 
-  const instruction = `Act as a senior legal counsel deciding whether this exact matter can be cleared. Do not produce a generic risk report. Return JSON keys: overall_disposition, clearance_recommendation, executive_rationale, must_fix[], raise_and_negotiate[], acceptable_with_note[], let_go[], quantifiable_exposure_summary, unquantifiable_exposure_summary, top_mitigations[], negotiation_plan, approval_conditions[], unresolved_questions[], confidence. overall_disposition must be one of CLEAR, CLEAR_WITH_CONDITIONS, NEGOTIATE_BEFORE_CLEARANCE, ESCALATE, DO_NOT_CLEAR. Every item in must_fix/raise_and_negotiate/acceptable_with_note/let_go must reference a finding id and explain why. Monetary statements must exactly respect the supplied exposure engine; never invent values.`;
+  const instruction = `Act as a senior legal counsel deciding whether this exact matter can be cleared. Do not produce a generic risk report. Regulatory/compliance impact and stale legal references can independently make a matter non-clearable even where contractual wording looks acceptable. Return JSON keys: overall_disposition, clearance_recommendation, executive_rationale, regulatory_clearance_effect, must_fix[], raise_and_negotiate[], acceptable_with_note[], let_go[], quantifiable_exposure_summary, unquantifiable_exposure_summary, top_mitigations[], compliance_conditions[], negotiation_plan, approval_conditions[], unresolved_questions[], confidence. overall_disposition must be one of CLEAR, CLEAR_WITH_CONDITIONS, NEGOTIATE_BEFORE_CLEARANCE, ESCALATE, DO_NOT_CLEAR. Every item in must_fix/raise_and_negotiate/acceptable_with_note/let_go must reference a finding id where applicable and explain why. Monetary statements must exactly respect the supplied exposure engine; never invent values.`;
   const pack = await callStructured(instruction, {
     document: { id: document.id, title: document.title, matter: document.matter, jurisdiction: document.jurisdiction, documentType: document.documentType },
     documentSummary: analysis.document_summary,
     executivePosition: analysis.executive_position,
     findings: analysis.findings || [],
     exposureModel,
+    regulatoryImpact: analysis.regulatory_impact || null,
     currentLaw: { answer: live?.answer || '', citations: live?.citations || [] },
     requestedObjective: clean(req.body?.objective, 'Can this document be cleared, and which points are genuinely worth raising?', 1200)
-  }, 6500);
+  }, 7000);
   pack.currentLawCitations = live?.citations || [];
   pack.generatedAt = new Date().toISOString();
   pack.engine = `Live matter clearance pack (${config.openaiModel})`;
@@ -289,7 +355,7 @@ app.post('/api/documents/:id/findings/:findingId/memory', requireSession, jsonRo
   const document = await db.getDocument(req.orgId, req.params.id, true);
   if (!document) return res.status(404).json({ error: 'Document not found.' });
   const finding = findingById(document, req.params.findingId);
-  if (!finding) return res.status(404).json({ error: 'Finding not found.' });
+  if (!finding) return res.status(404).json({ error: 'Finding not found in this document.' });
   const actionPack = req.body?.actionPack || {};
   let saved;
   await db.mutateState(req.orgId, state => {
@@ -332,7 +398,7 @@ app.use((error, req, res, next) => {
 });
 
 app.listen(externalPort, '0.0.0.0', () => {
-  console.log(`SYNESIS Matter Intelligence v8 listening on ${externalPort}; cognitive gateway ${internalGatewayPort}; core ${internalCorePort}`);
+  console.log(`SYNESIS Matter Intelligence v8.1 listening on ${externalPort}; cognitive gateway ${internalGatewayPort}; core ${internalCorePort}`);
 });
 
 async function runSmoke() {

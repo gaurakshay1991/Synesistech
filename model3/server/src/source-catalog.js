@@ -17,6 +17,76 @@ export const LIVE_SOURCE_CATALOG = [
     mode: 'rss', url: 'https://www.sebi.gov.in/sebirss.xml', allowedDomains: ['sebi.gov.in'], backgroundEnabled: true
   },
   {
+    id: 'india-code', name: 'India Code', regulator: 'Ministry of Law and Justice / Government of India', jurisdiction: 'India',
+    domain: 'Central and State Acts / subordinate legislation / rules / regulations / notifications / orders / circulars', authorityRank: 100,
+    mode: 'live-search', url: 'https://www.indiacode.nic.in/', allowedDomains: ['indiacode.nic.in'], backgroundEnabled: false
+  },
+  {
+    id: 'india-egazette', name: 'e-Gazette of India', regulator: 'Government of India', jurisdiction: 'India',
+    domain: 'Official Gazette / notifications / rules / commencement / amendments', authorityRank: 100,
+    mode: 'live-search', url: 'https://egazette.nic.in/', allowedDomains: ['egazette.nic.in'], backgroundEnabled: false
+  },
+  {
+    id: 'mca-india', name: 'Ministry of Corporate Affairs', regulator: 'Ministry of Corporate Affairs', jurisdiction: 'India',
+    domain: 'Companies / LLP / insolvency / corporate rules / circulars / notifications', authorityRank: 100,
+    mode: 'live-search', url: 'https://www.mca.gov.in/', allowedDomains: ['mca.gov.in'], backgroundEnabled: false
+  },
+  {
+    id: 'meity-india', name: 'Ministry of Electronics and Information Technology', regulator: 'MeitY', jurisdiction: 'India',
+    domain: 'Data protection / information technology / cyber policy / digital regulation', authorityRank: 100,
+    mode: 'live-search', url: 'https://www.meity.gov.in/', allowedDomains: ['meity.gov.in'], backgroundEnabled: false
+  },
+  {
+    id: 'cbic-india', name: 'CBIC Tax Information Portal', regulator: 'Central Board of Indirect Taxes and Customs', jurisdiction: 'India',
+    domain: 'GST / customs / excise / indirect tax / notifications / circulars / amendments', authorityRank: 100,
+    mode: 'live-search', url: 'https://taxinformation.cbic.gov.in/', allowedDomains: ['cbic.gov.in','taxinformation.cbic.gov.in'], backgroundEnabled: false
+  },
+  {
+    id: 'income-tax-india', name: 'Income Tax Department', regulator: 'Central Board of Direct Taxes / Income Tax Department', jurisdiction: 'India',
+    domain: 'Direct tax / rules / notifications / circulars / implementation', authorityRank: 100,
+    mode: 'live-search', url: 'https://www.incometax.gov.in/', allowedDomains: ['incometax.gov.in'], backgroundEnabled: false
+  },
+  {
+    id: 'labour-india', name: 'Ministry of Labour and Employment', regulator: 'Ministry of Labour and Employment', jurisdiction: 'India',
+    domain: 'Employment / labour codes / rules / gazette notifications / social security', authorityRank: 100,
+    mode: 'live-search', url: 'https://www.labour.gov.in/', allowedDomains: ['labour.gov.in'], backgroundEnabled: false
+  },
+  {
+    id: 'cci-india', name: 'Competition Commission of India', regulator: 'Competition Commission of India', jurisdiction: 'India',
+    domain: 'Competition / combinations / antitrust / regulations / orders / notifications', authorityRank: 100,
+    mode: 'live-search', url: 'https://www.cci.gov.in/', allowedDomains: ['cci.gov.in'], backgroundEnabled: false
+  },
+  {
+    id: 'supreme-court-india', name: 'Supreme Court of India', regulator: 'Supreme Court of India', jurisdiction: 'India',
+    domain: 'Judgments / orders / binding precedent / court rules', authorityRank: 100,
+    mode: 'live-search', url: 'https://www.sci.gov.in/', allowedDomains: ['sci.gov.in'], backgroundEnabled: false
+  },
+  {
+    id: 'ifsca-india', name: 'International Financial Services Centres Authority', regulator: 'IFSCA', jurisdiction: 'India',
+    domain: 'IFSC banking / finance companies / funds / capital markets / insurance / circulars / regulations', authorityRank: 100,
+    mode: 'live-search', url: 'https://ifsca.gov.in/', allowedDomains: ['ifsca.gov.in'], backgroundEnabled: false
+  },
+  {
+    id: 'irdai-india', name: 'Insurance Regulatory and Development Authority of India', regulator: 'IRDAI', jurisdiction: 'India',
+    domain: 'Insurance / reinsurance / regulations / circulars / AML-CFT', authorityRank: 100,
+    mode: 'live-search', url: 'https://irdai.gov.in/', allowedDomains: ['irdai.gov.in'], backgroundEnabled: false
+  },
+  {
+    id: 'pfrda-india', name: 'Pension Fund Regulatory and Development Authority', regulator: 'PFRDA', jurisdiction: 'India',
+    domain: 'Pensions / NPS / regulations / circulars / compliance', authorityRank: 100,
+    mode: 'live-search', url: 'https://www.pfrda.org.in/', allowedDomains: ['pfrda.org.in'], backgroundEnabled: false
+  },
+  {
+    id: 'fiu-india', name: 'Financial Intelligence Unit — India', regulator: 'FIU-IND', jurisdiction: 'India',
+    domain: 'AML / PMLA reporting / suspicious transaction / guidance', authorityRank: 100,
+    mode: 'live-search', url: 'https://fiuindia.gov.in/', allowedDomains: ['fiuindia.gov.in'], backgroundEnabled: false
+  },
+  {
+    id: 'dgft-india', name: 'Directorate General of Foreign Trade', regulator: 'DGFT', jurisdiction: 'India',
+    domain: 'Foreign trade policy / import-export / licensing / notifications / public notices', authorityRank: 100,
+    mode: 'live-search', url: 'https://www.dgft.gov.in/', allowedDomains: ['dgft.gov.in'], backgroundEnabled: false
+  },
+  {
     id: 'us-federal-register', name: 'United States Federal Register', regulator: 'US Federal agencies',
     jurisdiction: 'United States', domain: 'Federal rules / notices / proposed rules', authorityRank: 98,
     mode: 'federal-register-json', url: 'https://www.federalregister.gov/api/v1/documents.json?per_page=40&order=newest',
@@ -86,13 +156,14 @@ export const LIVE_SOURCE_CATALOG = [
 
 export function classifyLegalChange(title = '') {
   const value = String(title).toLowerCase();
-  if (/amend|modif|revision|revised|substitut|omission|insert/.test(value)) return 'Amendment / modification';
-  if (/master circular/.test(value)) return 'Master circular / consolidation';
+  if (/repeal|rescission|rescinded|withdrawn|supersed|cease to have effect/.test(value)) return 'Repeal / rescission / supersession';
+  if (/amend|modif|revision|revised|substitut|omission|insert|corrigendum/.test(value)) return 'Amendment / modification';
+  if (/master circular|master direction|consolidat/.test(value)) return 'Master / consolidation';
   if (/circular/.test(value)) return 'Circular';
   if (/notification/.test(value)) return 'Notification';
   if (/guideline|guidance|advisory/.test(value)) return 'Guideline / guidance';
   if (/final rule|rulemaking|\brule\b/.test(value)) return 'Rule';
-  if (/order|ruling|enforcement/.test(value)) return 'Order / enforcement';
+  if (/order|ruling|judgment|judgement|enforcement/.test(value)) return 'Order / judgment / enforcement';
   if (/consultation|proposed rule|draft/.test(value)) return 'Proposal / consultation';
   if (/act|regulation|directive|statute/.test(value)) return 'Legislation / regulation';
   return 'Regulatory publication';
@@ -168,7 +239,7 @@ export async function fetchBackgroundSource(source, { timeoutMs = 18000 } = {}) 
   try {
     const response = await fetch(source.url, {
       headers: {
-        'User-Agent': 'Synesis-Legal-Intelligence/5.0 (+compliance-monitor; respects source terms and rate limits)',
+        'User-Agent': 'Synesis-Legal-Intelligence/8.0 (+compliance-monitor; respects source terms and rate limits)',
         'Accept': source.mode === 'federal-register-json' ? 'application/json' : 'application/rss+xml, application/atom+xml, text/xml, application/xml, text/plain;q=0.8'
       },
       redirect: 'follow',
