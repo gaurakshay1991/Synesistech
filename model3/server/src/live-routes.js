@@ -207,17 +207,28 @@ export function registerLiveRoutes({ app, auth, allow, route, openai }) {
     let authorityResearch = null;
     if (req.body?.live !== false && openai) {
       const material = exposure.exposures.slice(0, 12).map(item => ({ category: item.category, riskLevel: item.riskLevel, issue: item.issue, quantificationStatus: item.quantificationStatus, contractualExposure: item.directContractualExposure })).map(item => JSON.stringify(item)).join('\n');
-      authorityResearch = await liveLegalResearch({
-        client: openai,
-        model: config.openaiLiveModel,
-        question: `Determine the CURRENT statutory, regulatory and enforcement exposure relevant to the material risks below. State current penalty/fine/damages maxima only when a current primary authority supplies them. Distinguish maximum statutory exposure from likely/actual exposure and explain applicability.\n${material}`,
-        jurisdiction: document.jurisdiction,
-        document,
-        purpose: 'current-authority exposure quantification'
-      });
+      try {
+        authorityResearch = await liveLegalResearch({
+          client: openai,
+          model: config.openaiLiveModel,
+          question: `Determine the CURRENT statutory, regulatory and enforcement exposure relevant to the material risks below. State current penalty/fine/damages maxima only when a current primary authority supplies them. Distinguish maximum statutory exposure from likely/actual exposure and explain applicability.\n${material}`,
+          jurisdiction: document.jurisdiction,
+          document,
+          purpose: 'current-authority exposure quantification'
+        });
+      } catch (error) {
+        authorityResearch = {
+          status: 'Live authority overlay unavailable',
+          liveWebUsed: false,
+          answer: '',
+          citations: [],
+          error: String(error.message || error).slice(0, 500),
+          researchedAt: new Date().toISOString()
+        };
+      }
     }
     const response = { exposure, authorityResearch, generatedAt: new Date().toISOString(), document: { id: document.id, title: document.title, jurisdiction: document.jurisdiction, matter: document.matter } };
-    await logAudit({ orgId: req.orgId, user: req.user, action: 'document.exposure.generated', entityType: 'document', entityId: document.id, metadata: { materialFindings: exposure.materialFindings, liveAuthorityResearch: Boolean(authorityResearch) } });
+    await logAudit({ orgId: req.orgId, user: req.user, action: 'document.exposure.generated', entityType: 'document', entityId: document.id, metadata: { materialFindings: exposure.materialFindings, liveAuthorityResearch: Boolean(authorityResearch?.liveWebUsed) } });
     res.json(response);
   }));
 }
