@@ -24,7 +24,7 @@ export const LIVE_SOURCE_CATALOG = [
   {
     id: 'india-egazette', name: 'e-Gazette of India', regulator: 'Government of India', jurisdiction: 'India',
     domain: 'Official Gazette / notifications / rules / commencement / amendments', authorityRank: 100,
-    mode: 'live-search', url: 'https://egazette.nic.in/', allowedDomains: ['egazette.nic.in'], backgroundEnabled: false
+    mode: 'live-search', url: 'https://egazette.gov.in/', allowedDomains: ['egazette.gov.in'], backgroundEnabled: false
   },
   {
     id: 'mca-india', name: 'Ministry of Corporate Affairs', regulator: 'Ministry of Corporate Affairs', jurisdiction: 'India',

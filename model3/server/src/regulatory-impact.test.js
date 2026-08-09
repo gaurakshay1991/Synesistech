@@ -46,9 +46,10 @@ test('research question explicitly requires omitted-authority and amendment chec
 test('India source map is broad enough for general legal/compliance work', () => {
   const india = LIVE_SOURCE_CATALOG.filter(item => item.jurisdiction === 'India');
   const domains = new Set(india.flatMap(item => item.allowedDomains || []));
-  for (const domain of ['rbi.org.in','sebi.gov.in','indiacode.nic.in','mca.gov.in','meity.gov.in','incometax.gov.in','labour.gov.in','cci.gov.in','sci.gov.in','ifsca.gov.in','irdai.gov.in','pfrda.org.in']) {
+  for (const domain of ['rbi.org.in','sebi.gov.in','indiacode.nic.in','egazette.gov.in','mca.gov.in','meity.gov.in','incometax.gov.in','labour.gov.in','cci.gov.in','sci.gov.in','ifsca.gov.in','irdai.gov.in','pfrda.org.in']) {
     assert.ok(domains.has(domain), `missing ${domain}`);
   }
+  assert.equal(domains.has('egazette.nic.in'), false, 'legacy Gazette hostname should not be used');
 });
 
 test('legal change classifier distinguishes supersession from an ordinary update', () => {
