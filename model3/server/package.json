@@ -1,5 +1,5 @@
 {
-  "name":"synesis-model3-server","version":"9.0.0-provider-failover","private":true,"type":"module",
-  "scripts":{"dev":"node --watch src/provider-front-gateway.js","start":"node src/provider-front-gateway.js","test":"node --test && node --check src/production-front-gateway.js && node --check src/provider-front-gateway.js && node --check src/ai-provider.js","sync:live":"node src/regulatory-sync-runner.js"},
+  "name":"synesis-model3-server","version":"9.1.0-neon-migration","private":true,"type":"module",
+  "scripts":{"dev":"node --watch src/provider-front-gateway.js","start":"node src/migrate-to-neon.js && node src/provider-front-gateway.js","test":"node --test && node --check src/production-front-gateway.js && node --check src/provider-front-gateway.js && node --check src/ai-provider.js && node --check src/migrate-to-neon.js","sync:live":"node src/regulatory-sync-runner.js"},
   "dependencies":{"bcryptjs":"^3.0.2","cookie-parser":"^1.4.7","cors":"^2.8.5","dotenv":"^17.2.1","express":"^4.21.2","express-rate-limit":"^8.0.1","helmet":"^8.1.0","jsonwebtoken":"^9.0.2","mammoth":"^1.9.1","multer":"^2.0.2","openai":"^6.49.0","pdf-parse":"^1.1.1","zod":"^4.0.14","pg":"^8.13.1"}
 }
