@@ -1,9 +1,10 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import {
-  BrainCircuit, ChevronRight, Copy, FilePlus2, FileText, Fingerprint, Globe2, LogOut, RefreshCw,
+  BrainCircuit, ChevronRight, Copy, Download, FilePlus2, FileText, Fingerprint, Globe2, LogOut, RefreshCw,
   Scale, Send, ShieldCheck, Sparkles, UploadCloud, X, Zap
 } from 'lucide-react';
 import './product-v8.css';
+import { createMatterDecisionBrief, downloadMatterDecisionBrief, matterDecisionBriefFileName } from './matter-brief.js';
 
 const API = '/api';
 
@@ -42,6 +43,7 @@ export default function ProductV8() {
   const [uploadOpen, setUploadOpen] = useState(false);
   const [notice, setNotice] = useState(null);
   const [health, setHealth] = useState(null);
+  const [decisionPack, setDecisionPack] = useState(null);
 
   useEffect(() => {
     Promise.allSettled([api('/auth/session'), fetch(`${API}/product-v8/health`).then(r => r.json())]).then(([session, h]) => {
@@ -56,7 +58,7 @@ export default function ProductV8() {
     setBoot(data);
     const next = preferredId || activeId || data.documents?.[0]?.id || '';
     if (next) await openDocument(next, data);
-    else { setActiveId(''); setDetail(null); setGraph(null); }
+    else { setActiveId(''); setDetail(null); setGraph(null); setDecisionPack(null); }
   }
 
   useEffect(() => { if (user && !user.mustChangePassword) refresh().catch(showError); }, [user?.id, user?.mustChangePassword]);
@@ -67,6 +69,7 @@ export default function ProductV8() {
   async function openDocument(id, bootOverride = null) {
     setActiveId(id);
     setTab('matter');
+    setDecisionPack(null);
     const [doc, graphData] = await Promise.all([api(`/documents/${id}`), api(`/documents/${id}/graph`)]);
     setDetail(doc.document);
     setGraph(graphData);
@@ -75,7 +78,18 @@ export default function ProductV8() {
 
   async function logout() {
     await api('/auth/logout', { method: 'POST' }).catch(() => {});
-    setUser(null); setBoot(null); setDetail(null); setActiveId('');
+    setUser(null); setBoot(null); setDetail(null); setActiveId(''); setDecisionPack(null);
+  }
+
+  function downloadDecisionBrief() {
+    if (!detail) return;
+    const brief = createMatterDecisionBrief({
+      document: detail,
+      decisionPack,
+      tasks: state.tasks || []
+    });
+    downloadMatterDecisionBrief(brief, matterDecisionBriefFileName(detail));
+    showSuccess('Decision brief downloaded. It contains only this matter’s current analysis, evidence and source links.');
   }
 
   if (!authChecked) return <div className="v8-shell center"><Loader label="Opening SYNESIS…" /></div>;
@@ -111,7 +125,7 @@ export default function ProductV8() {
     <main className="v8-main">
       <header className="v8-topbar">
         <div><small>DOCUMENT-DERIVED · CURRENT-LAW · COMPLIANCE IMPACT</small><h1>{detail?.title || 'Matter Intelligence Workbench'}</h1></div>
-        <div className="v8-top-actions"><button onClick={() => refresh().catch(showError)}><RefreshCw /> Refresh</button><button className="primary" onClick={() => setUploadOpen(true)}><FilePlus2 /> New matter</button></div>
+        <div className="v8-top-actions">{detail && <button onClick={downloadDecisionBrief}><Download /> Decision brief</button>}<button onClick={() => refresh().catch(showError)}><RefreshCw /> Refresh</button><button className="primary" onClick={() => setUploadOpen(true)}><FilePlus2 /> New matter</button></div>
       </header>
 
       {notice && <div className={`v8-notice ${notice.type}`}><div><strong>{notice.text}</strong>{notice.detail && <small>{notice.detail}</small>}</div><button onClick={() => setNotice(null)}><X /></button></div>}
@@ -129,7 +143,7 @@ export default function ProductV8() {
           {[['matter','Clear / raise / let go'],['findings',`Clause review (${analysis.findings?.length || 0})`],['regulatory','Regulatory + compliance'],['exposure','Exposure'],['graph','Clause memory graph'],['brain','Ask this matter'],['law','Current law'],['work','Actions']].map(([key,label]) => <button key={key} className={tab === key ? 'active' : ''} onClick={() => setTab(key)}>{label}</button>)}
         </nav>
 
-        {tab === 'matter' && <MatterDecision detail={detail} analysis={analysis} showError={showError} />}
+        {tab === 'matter' && <MatterDecision detail={detail} analysis={analysis} showError={showError} pack={decisionPack} onPack={setDecisionPack} />}
         {tab === 'findings' && <FindingWorkbench detail={detail} showError={showError} showSuccess={showSuccess} />}
         {tab === 'regulatory' && <RegulatoryImpactView detail={detail} initial={regulatoryImpact} showError={showError} />}
         {tab === 'exposure' && <ExposureView detail={detail} analysis={analysis} showError={showError} />}
@@ -147,7 +161,7 @@ export default function ProductV8() {
 function Login({ onDone }) {
   const [email, setEmail] = useState(''); const [password, setPassword] = useState(''); const [busy, setBusy] = useState(false); const [error, setError] = useState('');
   async function submit(e) { e.preventDefault(); setBusy(true); setError(''); try { const data = await api('/auth/login', { method: 'POST', body: JSON.stringify({ email, password }) }); onDone(data.user); } catch (err) { setError(err.message); } finally { setBusy(false); } }
-  return <div className="v8-auth"><div className="v8-auth-copy"><div className="v8-logo large"><Zap /></div><small>SYNESIS v8.1</small><h1>Work the matter. Verify the law behind it.</h1><p>Upload the document, decide what matters, detect stale legal references, quantify what can be quantified, rewrite the clause and preserve only human-approved memory.</p></div><form className="v8-auth-card" onSubmit={submit}><h2>Sign in</h2><label>Email<input type="email" value={email} onChange={e => setEmail(e.target.value)} required /></label><label>Password<input type="password" value={password} onChange={e => setPassword(e.target.value)} required /></label>{error && <div className="v8-form-error">{error}</div>}<button className="v8-primary" disabled={busy}>{busy ? 'Signing in…' : 'Enter SYNESIS'}</button></form></div>;
+  return <div className="v8-auth"><div className="v8-auth-copy"><div className="v8-logo large"><Zap /></div><small>SYNESIS 3.0</small><h1>Work the matter. Verify the law behind it.</h1><p>Upload the document, decide what matters, detect stale legal references, quantify what can be quantified, rewrite the clause and preserve only human-approved memory.</p></div><form className="v8-auth-card" onSubmit={submit}><h2>Sign in</h2><label>Email<input type="email" value={email} onChange={e => setEmail(e.target.value)} required /></label><label>Password<input type="password" value={password} onChange={e => setPassword(e.target.value)} required /></label>{error && <div className="v8-form-error">{error}</div>}<button className="v8-primary" disabled={busy}>{busy ? 'Signing in…' : 'Enter SYNESIS'}</button></form></div>;
 }
 
 function PasswordSetup({ user, onDone, onLogout }) {
@@ -172,9 +186,9 @@ function UploadModal({ onClose, onDone, showError }) {
   return <div className="v8-modal-back"><form className="v8-modal" onSubmit={submit}><header><div><small>LIVE MULTIPASS + REGULATORY FRESHNESS</small><h2>Analyse one document independently</h2></div><button type="button" onClick={onClose}><X /></button></header><div className={`v8-drop ${drag ? 'drag' : ''}`} onDragOver={e => { e.preventDefault(); setDrag(true); }} onDragLeave={() => setDrag(false)} onDrop={drop}><UploadCloud /><strong>{file ? file.name : 'Drop PDF, DOCX or supported text file'}</strong><input type="file" onChange={e => setFile(e.target.files?.[0] || null)} /></div><div className="v8-or">or paste text</div><textarea value={text} onChange={e => setText(e.target.value)} placeholder="Paste agreement, policy, circular, legal opinion, case material or regulatory document…" /><div className="v8-form-row"><label>Jurisdiction<input value={jurisdiction} onChange={e => setJurisdiction(e.target.value)} /></label><label>Matter / transaction<input value={matter} onChange={e => setMatter(e.target.value)} placeholder="Optional" /></label></div><label>What should SYNESIS optimise for?<textarea className="short" value={objective} onChange={e => setObjective(e.target.value)} /></label><div className="v8-modal-foot"><span><ShieldCheck />A named law/circular is not assumed current merely because the document cites it. Live verification must support that conclusion.</span><button className="v8-primary" disabled={busy || (!file && text.trim().length < 20)}>{busy ? <><RefreshCw className="spin" /> Analysing matter + authority versions…</> : <><BrainCircuit /> Analyse now</>}</button></div></form></div>;
 }
 
-function MatterDecision({ detail, analysis, showError }) {
-  const [pack, setPack] = useState(null); const [busy, setBusy] = useState(false);
-  async function run() { setBusy(true); try { const data = await api(`/documents/${detail.id}/decision-pack`, { method:'POST', body:JSON.stringify({ objective:'Can this matter be cleared? Treat stale law, missing regulatory obligations and compliance gaps as clearance issues. Separate must-fix, worth-raising, acceptable and let-go points.' }) }); setPack(data.decisionPack); } catch (err) { showError(err); } finally { setBusy(false); } }
+function MatterDecision({ detail, analysis, showError, pack, onPack }) {
+  const [busy, setBusy] = useState(false);
+  async function run() { setBusy(true); try { const data = await api(`/documents/${detail.id}/decision-pack`, { method:'POST', body:JSON.stringify({ objective:'Can this matter be cleared? Treat stale law, missing regulatory obligations and compliance gaps as clearance issues. Separate must-fix, worth-raising, acceptable and let-go points.' }) }); onPack(data.decisionPack); } catch (err) { showError(err); } finally { setBusy(false); } }
   return <div className="v8-grid two">
     <Section title="Current analysis" subtitle={analysis.engine || 'Live matter analysis'}><div className="v8-decision"><Sparkles /><div><strong>{analysis.recommended_decision || 'Run the clearance decision.'}</strong><p>{analysis.executive_position || analysis.document_summary}</p>{analysis.regulatory_impact?.staleReferenceWarning && <p><strong>Stale legal/regulatory reference warning:</strong> this can independently block clearance.</p>}</div></div><button className="v8-primary full" onClick={run} disabled={busy}>{busy ? <><RefreshCw className="spin" /> Re-evaluating current law + compliance…</> : <><Scale /> Can this be cleared?</>}</button></Section>
     <Section title="Clearance decision" subtitle="Contract, regulatory, compliance and current-law decision"><>{!pack && !busy && <p className="v8-muted">Run clearance to classify genuinely material points into must-fix, negotiate, accept-with-note or let-go.</p>}{busy && <Loader label="Building clearance pack…" />}{pack && <div className="v8-pack"><div className="v8-pack-head"><Risk value={pack.overall_disposition} /><strong>{pack.clearance_recommendation}</strong></div><p>{pack.executive_rationale}</p>{pack.regulatory_clearance_effect && <><h4>Regulatory clearance effect</h4><p>{pack.regulatory_clearance_effect}</p></>}<DispositionGroup title="Must fix" items={pack.must_fix} tone="critical"/><DispositionGroup title="Raise / negotiate" items={pack.raise_and_negotiate} tone="high"/><DispositionGroup title="Accept with note" items={pack.acceptable_with_note} tone="medium"/><DispositionGroup title="Let go" items={pack.let_go} tone="low"/>{pack.compliance_conditions?.length > 0 && <><h4>Compliance conditions</h4><Json value={pack.compliance_conditions}/></>}<h4>Negotiation plan</h4><Json value={pack.negotiation_plan}/></div>}</></Section>
