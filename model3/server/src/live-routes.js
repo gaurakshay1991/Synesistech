@@ -1,9 +1,10 @@
 import crypto from 'node:crypto';
 import { config } from './config.js';
-import { getState, mutateState, getDocument, logAudit } from './db.js';
+import { getState, mutateState, getDocument, listDocuments, logAudit } from './db.js';
 import { LIVE_SOURCE_CATALOG, sourceStatusView } from './source-catalog.js';
 import { syncAuthoritativeSources, liveLegalResearch, createWatchRecord, assertSafePublicUrl } from './live-intelligence.js';
 import { buildDocumentExposureModel } from './exposure.js';
+import { mapRegulatoryDrift, applyRegulatoryDrift } from './regulatory-drift.js';
 
 const clean = (value, fallback = '', max = 2000) => String(value ?? fallback).trim().slice(0, max);
 
@@ -24,7 +25,9 @@ function asStoredUpdate(item) {
 function updateLiveMetrics(state) {
   state.metrics ||= {};
   state.regulatoryUpdates ||= [];
+  state.regulatoryDrift ||= [];
   state.metrics.regulatoryUpdatesOpen = state.regulatoryUpdates.filter(item => !['Verified and mapped', 'Closed'].includes(item.status)).length;
+  state.metrics.regulatoryDriftOpen = state.regulatoryDrift.filter(item => item.status === 'REVALIDATION_REQUIRED').length;
   state.metrics.liveSources = (state.sources || []).filter(item => /Healthy|configured/i.test(item.status || '')).length;
   state.metrics.liveChanges24h = state.regulatoryUpdates.filter(item => {
     const stamp = new Date(item.firstSeenAt || item.createdAt || 0).getTime();
@@ -35,11 +38,16 @@ function updateLiveMetrics(state) {
 
 export async function performSync(orgId) {
   const current = await getState(orgId);
-  const result = await syncAuthoritativeSources({
-    existingUpdates: current.regulatoryUpdates || [],
-    sourceState: current.sources || [],
-    watchlist: current.liveWatchlist || []
-  });
+  const [result, documentRefs] = await Promise.all([
+    syncAuthoritativeSources({
+      existingUpdates: current.regulatoryUpdates || [],
+      sourceState: current.sources || [],
+      watchlist: current.liveWatchlist || []
+    }),
+    listDocuments(orgId, 120)
+  ]);
+  const documents = (await Promise.all(documentRefs.map(item => getDocument(orgId, item.id, false)))).filter(Boolean);
+  const driftCandidates = mapRegulatoryDrift(documents, result.detected);
 
   return mutateState(orgId, state => {
     state.liveWatchlist = result.watchlist;
@@ -66,16 +74,19 @@ export async function performSync(orgId) {
       }
     }
     state.regulatoryUpdates = state.regulatoryUpdates.slice(0, 1200);
+    applyRegulatoryDrift(state, driftCandidates);
     state.alerts = (state.alerts || []).slice(0, 1000);
     state.liveBrain = {
       ...(state.liveBrain || {}),
       status: 'Online',
       lastSyncAt: result.checkedAt,
       lastDetectedCount: added.length,
+      lastDriftCandidateCount: driftCandidates.length,
       monitoredBackgroundSources: result.sourceChecks.filter(item => item.backgroundEnabled).length,
       queryTimeSources: result.sourceChecks.filter(item => !item.backgroundEnabled).length,
       watchedUrls: result.watchlist.filter(item => item.enabled).length,
-      isolationPolicy: 'Every document live-analysis run is isolated from every other document and matter.'
+      isolationPolicy: 'Every document live-analysis run is isolated from every other document and matter.',
+      driftPolicy: 'New official-source changes are matched to stored matters. Matching matters are marked for revalidation without making an automatic legal conclusion.'
     };
     return updateLiveMetrics(state);
   });
@@ -106,20 +117,22 @@ export function registerLiveRoutes({ app, auth, allow, route, openai }) {
       sources: catalog,
       watchlist: state.liveWatchlist || [],
       latest: (state.regulatoryUpdates || []).filter(item => item.independentlyDetected).slice(0, 80),
+      regulatoryDrift: (state.regulatoryDrift || []).filter(item => item.status === 'REVALIDATION_REQUIRED').slice(0, 100),
       model: config.openaiLiveModel,
       capabilities: {
         currentWebResearch: Boolean(openai),
         autonomousOfficialFeeds: true,
         independentDocumentIsolation: true,
         monitoredUrlFingerprinting: true,
-        exposureQuantification: true
+        exposureQuantification: true,
+        regulatoryDriftRevalidation: true
       }
     });
   }));
 
   app.post('/api/live/sync', auth, allow('admin', 'legal', 'compliance', 'risk', 'audit', 'management'), route(async (req, res) => {
     const state = await performSync(req.orgId);
-    await logAudit({ orgId: req.orgId, user: req.user, action: 'live.sources.synced', entityType: 'live-intelligence', entityId: req.orgId, metadata: { lastSyncAt: state.liveBrain?.lastSyncAt, detected: state.liveBrain?.lastDetectedCount } });
+    await logAudit({ orgId: req.orgId, user: req.user, action: 'live.sources.synced', entityType: 'live-intelligence', entityId: req.orgId, metadata: { lastSyncAt: state.liveBrain?.lastSyncAt, detected: state.liveBrain?.lastDetectedCount, driftCandidates: state.liveBrain?.lastDriftCandidateCount } });
     res.json({ state, liveBrain: state.liveBrain });
   }));
 
@@ -129,7 +142,7 @@ export function registerLiveRoutes({ app, auth, allow, route, openai }) {
     const actual = Buffer.from(supplied);
     if (actual.length !== expected.length || !crypto.timingSafeEqual(actual, expected)) return res.status(401).json({ error: 'Invalid sync credential.' });
     const state = await performSync((await import('./db.js')).organizationId);
-    await auditSystem((await import('./db.js')).organizationId, 'live.sources.autonomous-sync', { lastSyncAt: state.liveBrain?.lastSyncAt, detected: state.liveBrain?.lastDetectedCount });
+    await auditSystem((await import('./db.js')).organizationId, 'live.sources.autonomous-sync', { lastSyncAt: state.liveBrain?.lastSyncAt, detected: state.liveBrain?.lastDetectedCount, driftCandidates: state.liveBrain?.lastDriftCandidateCount });
     res.json({ ok: true, liveBrain: state.liveBrain });
   }));
 
@@ -207,17 +220,28 @@ export function registerLiveRoutes({ app, auth, allow, route, openai }) {
     let authorityResearch = null;
     if (req.body?.live !== false && openai) {
       const material = exposure.exposures.slice(0, 12).map(item => ({ category: item.category, riskLevel: item.riskLevel, issue: item.issue, quantificationStatus: item.quantificationStatus, contractualExposure: item.directContractualExposure })).map(item => JSON.stringify(item)).join('\n');
-      authorityResearch = await liveLegalResearch({
-        client: openai,
-        model: config.openaiLiveModel,
-        question: `Determine the CURRENT statutory, regulatory and enforcement exposure relevant to the material risks below. State current penalty/fine/damages maxima only when a current primary authority supplies them. Distinguish maximum statutory exposure from likely/actual exposure and explain applicability.\n${material}`,
-        jurisdiction: document.jurisdiction,
-        document,
-        purpose: 'current-authority exposure quantification'
-      });
+      try {
+        authorityResearch = await liveLegalResearch({
+          client: openai,
+          model: config.openaiLiveModel,
+          question: `Determine the CURRENT statutory, regulatory and enforcement exposure relevant to the material risks below. State current penalty/fine/damages maxima only when a current primary authority supplies them. Distinguish maximum statutory exposure from likely/actual exposure and explain applicability.\n${material}`,
+          jurisdiction: document.jurisdiction,
+          document,
+          purpose: 'current-authority exposure quantification'
+        });
+      } catch (error) {
+        authorityResearch = {
+          status: 'Live authority overlay unavailable',
+          liveWebUsed: false,
+          answer: '',
+          citations: [],
+          error: String(error.message || error).slice(0, 500),
+          researchedAt: new Date().toISOString()
+        };
+      }
     }
     const response = { exposure, authorityResearch, generatedAt: new Date().toISOString(), document: { id: document.id, title: document.title, jurisdiction: document.jurisdiction, matter: document.matter } };
-    await logAudit({ orgId: req.orgId, user: req.user, action: 'document.exposure.generated', entityType: 'document', entityId: document.id, metadata: { materialFindings: exposure.materialFindings, liveAuthorityResearch: Boolean(authorityResearch) } });
+    await logAudit({ orgId: req.orgId, user: req.user, action: 'document.exposure.generated', entityType: 'document', entityId: document.id, metadata: { materialFindings: exposure.materialFindings, liveAuthorityResearch: Boolean(authorityResearch?.liveWebUsed) } });
     res.json(response);
   }));
 }

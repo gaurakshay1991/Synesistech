@@ -1,0 +1,38 @@
+name: SYNESIS Production Smoke
+
+on:
+  push:
+    branches: [synesis-new-model-3.0]
+
+permissions:
+  contents: read
+
+jobs:
+  production-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - name: Verify public v8 runtime, neural model and live research
+        shell: bash
+        run: |
+          set -euo pipefail
+          BASE="https://synesis-new-model-3.onrender.com"
+          ok=0
+          for i in $(seq 1 60); do
+            code=$(curl -L -sS --max-time 20 -o /tmp/health.json -w "%{http_code}" "$BASE/api/product-v8/health" || true)
+            if [ "$code" = "200" ]; then
+              neural=$(node -e "const fs=require('fs');const h=JSON.parse(fs.readFileSync('/tmp/health.json','utf8'));process.stdout.write(String(h.runtimeSmoke?.neural?.status||''))")
+              web=$(node -e "const fs=require('fs');const h=JSON.parse(fs.readFileSync('/tmp/health.json','utf8'));process.stdout.write(String(h.runtimeSmoke?.liveResearch?.status||''))")
+              echo "health=200 neural=$neural liveResearch=$web"
+              if [ "$neural" = "pass" ] && [ "$web" = "pass" ]; then ok=1; break; fi
+            else
+              echo "health=$code"
+            fi
+            sleep 5
+          done
+          cat /tmp/health.json || true
+          test "$ok" = "1"
+          curl -L -fsS --max-time 30 "$BASE/" -o /tmp/root.html
+          grep -qi "SYNESIS" /tmp/root.html
+          session_code=$(curl -L -sS --max-time 20 -o /tmp/session.json -w "%{http_code}" "$BASE/api/auth/session" || true)
+          test "$session_code" = "401"
