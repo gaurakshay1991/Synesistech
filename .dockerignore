@@ -1,0 +1,13 @@
+.git
+.github
+node_modules
+client/node_modules
+server/node_modules
+client/dist
+model3
+coverage
+*.log
+.env
+.env.*
+!.env.example
+.DS_Store

@@ -12,6 +12,7 @@ import InstitutionalLab from './InstitutionalLab.jsx';
 import RegulatoryCommand from './RegulatoryCommand.jsx';
 import ThemisHome from './ThemisHome.jsx';
 
+// Keep each institutional workspace routed through one coherent application shell.
 const MODE_KEY = 'themis-active-workspace-v2';
 const VALID_MODES = new Set(['home', 'decision', 'regulatory', 'lab']);
 

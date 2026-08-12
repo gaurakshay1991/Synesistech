@@ -1,12 +1,37 @@
+import express from 'express';
 import { config } from './config.js';
 import { synchronizeBootstrapAdmin } from './bootstrap-admin.js';
+import { synchronizeAnalysisProvenance } from './analysis-provenance.js';
+import mcpRouter from './mcp.js';
 
 await synchronizeBootstrapAdmin();
-const { default: app } = await import('../../api/index.js');
+await synchronizeAnalysisProvenance();
+const { default: privateApp } = await import('./app.js');
+
+const app = express();
+app.disable('x-powered-by');
+app.set('trust proxy', 1);
+
+app.get('/health', (req, res) => {
+  res.json({
+    ok: true,
+    product: 'LIVE SYNESIS',
+    mode: config.aiMode,
+    storage: config.databaseUrl ? 'neon-postgres' : 'local',
+    aiConfigured: config.openaiConfigured,
+    model: config.openaiModel,
+    time: new Date().toISOString()
+  });
+});
+
+app.use(mcpRouter);
+app.use(privateApp);
 
 const server = app.listen(config.port, '0.0.0.0', () => {
   console.log(`LIVE SYNESIS 4 running on port ${config.port}`);
-  console.log(`Institutional multipass analysis: ${config.openaiKey ? `configured with ${config.openaiModel}` : 'emergency fallback only'}`);
+  console.log('MCP Streamable HTTP endpoint: /mcp');
+  console.log(`Storage: ${config.databaseUrl ? 'Neon Postgres' : 'local development store'}`);
+  console.log(`Analysis mode: ${config.aiMode}${config.aiMode === 'prototype' ? ' (quota-independent deterministic engine)' : ` (${config.openaiModel})`}`);
 });
 
 function shutdown(signal) {

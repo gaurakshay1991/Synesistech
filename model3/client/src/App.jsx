@@ -45,9 +45,21 @@ function blockedFileName(text) {
   return String(text || '').match(/<b>\s*File name:\s*<\/b>\s*([^<]+)/i)?.[1]?.trim() || null;
 }
 
+function isCorporateFileTransferBlock(text, contentType = '') {
+  const sample = String(text || '').toLowerCase();
+  return sample.includes('file transfer blocked') ||
+    (sample.includes('blocked in accordance with company policy') && sample.includes('file name:')) ||
+    (contentType.includes('text/html') && sample.includes('contact your system administrator') && sample.includes('blocked'));
+}
+
+function blockedFileName(text) {
+  return String(text || '').match(/<b>\s*File name:\s*<\/b>\s*([^<]+)/i)?.[1]?.trim() || null;
+}
+
 async function readResponse(response) {
   const text = await response.text();
   const contentType = response.headers.get('content-type') || '';
+
   if (isCorporateFileTransferBlock(text, contentType)) {
     const fileName = blockedFileName(text);
     const error = new Error(
@@ -62,6 +74,11 @@ async function readResponse(response) {
   let data = {};
   try { data = text ? JSON.parse(text) : {}; }
   catch {
+
+  let data = {};
+  try {
+    data = text ? JSON.parse(text) : {};
+  } catch {
     if (contentType.includes('text/html')) {
       const error = new Error('A network security or login gateway returned an HTML page instead of the Synesis API response.');
       error.status = response.status || 502;
@@ -182,4 +199,45 @@ export default function App() {
       setNotice({ type: 'success', message: `${document.title} was independently analysed, checked against current law where available, and added as the active matter.` });
     }} />}
   </div>;
+}
+  return (
+    <div className="app-shell">
+      <aside className={`sidebar ${mobile ? 'open' : ''}`}>
+        <div className="brand"><div className="brand-mark"><Zap size={22} /></div><div><strong>SYNESIS</strong><span>NEW MODEL 3.0</span></div><button className="icon mobile-only" onClick={() => setMobile(false)}><X /></button></div>
+        <div className="category">Regulatory Decision Assurance</div>
+        <nav>{nav.map(([key, label, Icon]) => <button key={key} className={page === key ? 'active' : ''} onClick={() => openPage(key)}><Icon size={18} /><span>{label}</span>{key === 'work' && state.metrics.attention > 0 && <b>{state.metrics.attention}</b>}</button>)}</nav>
+        <div className="sidebar-foot"><div className="user-mini"><div>{user.name?.slice(0, 1)}</div><span><strong>{user.name}</strong><small>{user.role}</small></span></div><button className="icon" onClick={logout} title="Log out"><LogOut size={18} /></button></div>
+      </aside>
+      {mobile && <div className="scrim" onClick={() => setMobile(false)} />}
+
+      <main className="main">
+        <header className="topbar">
+          <button className="icon mobile-only" onClick={() => setMobile(true)}><Menu /></button>
+          <div><small>Institutional operating layer</small><h1>{pageTitle}</h1></div>
+          <div className="top-actions"><button className="ghost" onClick={() => setUploadOpen(true)}><UploadCloud size={17} /> Analyse document</button><button className="primary" onClick={() => openPage('work')}><BellRing size={17} /> Attention queue <b>{state.metrics.attention}</b></button></div>
+        </header>
+
+        {notice && <div className={`notice ${notice.type || 'info'}`}>{notice.message}<button onClick={() => setNotice(null)}><X size={16} /></button></div>}
+
+        <section className="page">
+          {page === 'home' && <Home state={state} openPage={openPage} />}
+          {page === 'work' && <MyWork state={state} request={request} setState={setState} setNotice={setNotice} />}
+          {page === 'documents' && <Documents documents={documents} onOpen={openDocument} onUpload={() => setUploadOpen(true)} />}
+          {page === 'review' && <Review active={activeDocument} documents={documents} onOpen={openDocument} request={request} setActive={setActiveDocument} setNotice={setNotice} />}
+          {page === 'impact' && <Impact state={state} request={request} setState={setState} setNotice={setNotice} />}
+          {page === 'obligations' && <Obligations state={state} />}
+          {page === 'decisions' && <Decisions state={state} request={request} setState={setState} setNotice={setNotice} />}
+          {page === 'execution' && <Execution state={state} request={request} setState={setState} setNotice={setNotice} />}
+          {page === 'twin' && <Twin state={state} />}
+          {page === 'packs' && <Packs state={state} />}
+          {page === 'reports' && <Reports state={state} documents={documents} request={request} setNotice={setNotice} />}
+          {page === 'ask' && <AskSynesis state={state} active={activeDocument} request={request} />}
+          {page === 'simulations' && <Simulations state={state} request={request} setState={setState} setNotice={setNotice} />}
+          {page === 'admin' && <ControlTower state={state} user={user} request={request} />}
+        </section>
+      </main>
+
+      {uploadOpen && <UploadModal request={request} onClose={() => setUploadOpen(false)} onComplete={({ document, state: next }) => { setState(next); setDocuments(current => [document, ...current]); setActiveDocument(document); setUploadOpen(false); setPage('review'); setNotice({ type: 'success', message: `${document.title} was analysed and compiled into the Institutional Twin.` }); }} />}
+    </div>
+  );
 }
