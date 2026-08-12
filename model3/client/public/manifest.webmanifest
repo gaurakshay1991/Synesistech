@@ -1,0 +1,19 @@
+{
+  "name": "SYNESIS",
+  "short_name": "SYNESIS",
+  "description": "Governed legal, regulatory, risk and decision intelligence.",
+  "start_url": "/?source=ios-app",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#071014",
+  "theme_color": "#071014",
+  "icons": [
+    {
+      "src": "/synesis-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

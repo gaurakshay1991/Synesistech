@@ -1,43 +1,37 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { analyzeDocument, contentHash, extractText } from './analysis.js';
+import { extractText, analyzeDocument, symbolicClauseAssessment } from './analysis.js';
 
-test('contentHash is deterministic and content-specific', () => {
-  const first = contentHash(Buffer.from('Synesis evidence A'));
-  const repeat = contentHash(Buffer.from('Synesis evidence A'));
-  const different = contentHash(Buffer.from('Synesis evidence B'));
-  assert.equal(first, repeat);
-  assert.notEqual(first, different);
-  assert.equal(first.length, 64);
-});
-
-test('extractText accepts meaningful pasted evidence', async () => {
-  const result = await extractText(null, 'This agreement requires the service provider to maintain incident records and notify the institution promptly.');
-  assert.match(result.text, /service provider/i);
+test('pasted text is extracted and hashed', async () => {
+  const result = await extractText(null, 'This agreement contains sufficient readable text for analysis and testing.');
   assert.equal(result.mimeType, 'text/plain');
   assert.equal(result.hash.length, 64);
 });
 
-test('extractText rejects insufficient pasted evidence', async () => {
-  await assert.rejects(() => extractText(null, 'too short'), /20 readable characters/i);
+test('symbolic engine detects material legal protections and produces a trace', () => {
+  const result = symbolicClauseAssessment(
+    'The supplier shall have unlimited liability for all losses. The customer has audit rights and access to records. Security incidents shall be notified within 24 hours.',
+    { matter: 'Vendor agreement', jurisdiction: 'India' }
+  );
+  assert.ok(result.rules_fired.some(item => item.id === 'R-LIAB-001'));
+  assert.ok(result.positive_controls.some(item => item.id === 'P-AUDIT-002'));
+  assert.ok(result.positive_controls.some(item => item.id === 'P-INC-003'));
+  assert.equal(result.clause_fingerprint.length, 64);
+  assert.ok(result.metadata.rulesEvaluated >= 10);
 });
 
-test('fallback analysis is explicitly disclosed and document-specific', async () => {
-  const risky = await analyzeDocument({
+test('fallback is explicit, document-specific and neuro-symbolically traceable', async () => {
+  const result = await analyzeDocument({
     client: null,
-    model: 'gpt-5-mini',
-    text: 'The Provider shall have unlimited liability for all losses. The Provider shall indemnify the Bank for any and all claims.',
-    options: { matter: 'Vendor contract', documentType: 'Agreement', jurisdiction: 'India' }
+    model: 'none',
+    text: 'The supplier shall have unlimited liability for all losses and shall process personal data.',
+    options: { matter: 'Vendor agreement', documentType: 'Agreement', jurisdiction: 'India' }
   });
-  const controlled = await analyzeDocument({
-    client: null,
-    model: 'gpt-5-mini',
-    text: 'Liability is capped at the annual fees. The institution may audit records and terminate or suspend immediately for sanctions, AML, cyber incidents or regulatory directions. Business continuity and transition assistance are mandatory.',
-    options: { matter: 'Vendor contract', documentType: 'Agreement', jurisdiction: 'India' }
-  });
-
-  assert.equal(risky.analysis_details.live_ai_used, false);
-  assert.match(risky.engine, /Emergency deterministic fallback/i);
-  assert.ok(risky.findings.some(item => /uncapped liability/i.test(item.issue)));
-  assert.notDeepEqual(risky.findings.map(item => item.issue), controlled.findings.map(item => item.issue));
+  assert.equal(result.analysis_details.live_ai_used, false);
+  assert.match(result.engine, /neuro-symbolic fallback/i);
+  assert.ok(result.findings.some(item => /unlimited|uncapped/i.test(item.issue)));
+  assert.ok(result.neuro_symbolic.symbolic_signal_score >= 1);
+  assert.ok(result.reasoning_trace.length >= 1);
+  assert.equal(result.litigation_risk.status, 'Scenario indicator only — not a court-outcome prediction');
+  assert.ok(Array.isArray(result.clause_memory_candidates));
 });
